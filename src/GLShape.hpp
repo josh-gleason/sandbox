@@ -1,15 +1,16 @@
-#ifndef IGLRENDERABLE_HPP
-#define IGLRENDERABLE_HPP
+#ifndef GLSHAPE_HPP 
+#define GLSHAPE_HPP
 
-class iGLRenderable
+#include "iGLRenderable.hpp"
+
+class GLShape : public iGLRenderable 
 {
 public:
-    iGLRenderable() {};
-    virtual ~iGLRenderable() {};
+    GLShape() {};
+    virtual ~GLShape() {};
     
-    // This will be called to render the shape
-    virtual void draw() = 0;
+    virtual void draw();
 };
 
-#endif // IGLRENDERABLE_HPP
+#endif // GLSHAPE_HPP
 

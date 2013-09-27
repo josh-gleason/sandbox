@@ -4,6 +4,8 @@
 #include <boost/shared_array.hpp>
 #include <GL/glew.h>
 
+#include <iostream>
+
 class GLBuffer
 {
 public:
@@ -32,12 +34,26 @@ public:
     //   GL_TRANSFORM_FEEDBACK_BUFFER
     //   GL_UNIFORM_BUFFER
     void bind(GLenum target, GLsizei idx = 0);
-    
+  
+    // set the data
+    template <typename T>
+    bool setData(const T* data, GLsizei size = 1, GLenum usage = GL_STATIC_DRAW, GLsizei idx = 0)
+    {
+        if ( m_buffers != nullptr && m_bufferCount > idx && m_target != GL_NONE )
+        {
+            glBufferData(m_target, sizeof(T)*size, reinterpret_cast<const void*>(data), usage);
+        }
+
+        // not initialized or not bound
+        return false;
+    }
+
     // unbind buffers
     // target: One of the GLenum buffers (see GLBuffer::bind)
     static void unbindBuffers(GLenum target);
 protected:
     boost::shared_array<GLuint> m_buffers;
+    GLenum                      m_target;
     GLsizei m_bufferCount;
 };
 

@@ -3,9 +3,17 @@
 #include "GLContext.hpp"
 
 #include "GLShader.hpp"
+#include "GLUniform.hpp"
 
+#include <glm/glm.hpp>
 #include <QTextStream>
 #include <QApplication>
+
+#include <glm/glm.hpp>
+
+#include <iostream>
+
+GLint locVerts;
 
 GLContext::GLContext(QWidget *parent) :
     QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer), parent),
@@ -40,7 +48,7 @@ void GLContext::initializeGL()
         return reportError(QString::fromUtf8(fshader.getLastError().c_str()));
 
     // initialize program
-    m_glProgram.init();
+    m_glProgram.init(); 
     if ( !m_glProgram.attachShader(vshader) )
         return reportError(QString::fromUtf8(m_glProgram.getLastError().c_str()));
     if ( !m_glProgram.attachShader(fshader) )
@@ -50,14 +58,13 @@ void GLContext::initializeGL()
     if ( !m_glProgram.link() )
         return reportError(QString::fromUtf8(m_glProgram.getLastError().c_str()));
 
-    // set up the buffer
-    m_glVertexBuffer.generate(1);
-    m_glVertexBuffer.bind(GL_VERTEX_ARRAY);
+    // initialize triangle
+    m_triangle.init(m_glProgram, "v_position", "v_color");
 }
 
 void GLContext::paintGL()
 {
-    
+    m_triangle.draw();
 }
 
 bool GLContext::good() const

@@ -6,8 +6,9 @@
 QT += opengl
 
 QMAKE_CC = clang
+#QMAKE_CXX = g++
 QMAKE_CXX = clang++
-QMAKE_CXXFLAGS = -std=c++11
+QMAKE_CXXFLAGS = -std=c++11 -g
 TEMPLATE = app
 TARGET = ../bin/main
 DEPENDPATH += .

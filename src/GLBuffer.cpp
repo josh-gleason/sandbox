@@ -2,6 +2,7 @@
 
 GLBuffer::GLBuffer() :
     m_buffers(nullptr),
+    m_target(GL_NONE),
     m_bufferCount(0U)
 {}
 
@@ -38,10 +39,10 @@ bool GLBuffer::generate(GLsizei n)
     // set shared array
     if ( m_buffers != nullptr && m_buffers.use_count() <= 1 )
     {
-        GLuint *buffers = new GLuint[m_bufferCount];
+        GLuint *temp_buffers = new GLuint[m_bufferCount];
         for ( GLsizei i = 0U; i < m_bufferCount; ++i )
-            buffers[i] = m_buffers[i];
-        glDeleteBuffers(m_bufferCount, buffers);
+            temp_buffers[i] = m_buffers[i];
+        glDeleteBuffers(m_bufferCount, temp_buffers);
         delete [] buffers;
     }
     m_buffers = boost::shared_array<GLuint>(buffers);
@@ -52,8 +53,11 @@ bool GLBuffer::generate(GLsizei n)
 
 void GLBuffer::bind(GLenum target, GLsizei idx)
 {
-    if ( m_buffers != nullptr )
+    if ( m_buffers != nullptr && m_bufferCount > idx )
+    {
         glBindBuffer(target, m_buffers[idx]);
+        m_target = target;
+    }
 }
 
 void GLBuffer::unbindBuffers(GLenum target)

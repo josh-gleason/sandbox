@@ -3,12 +3,15 @@
 #include "GLShader.hpp"
 
 #include <sstream>
+#include <stdexcept>
 
 #define CHECK_INIT if ( m_program == nullptr ) { m_err = "Program not initialized"; return false; }
 
 GLProgram::GLProgram() :
     m_program(nullptr),
-    m_err("")
+    m_err(""),
+    m_attributes(nullptr),
+    m_uniforms(nullptr)
 {}
 
 GLProgram::~GLProgram()
@@ -16,14 +19,31 @@ GLProgram::~GLProgram()
     if ( m_program != nullptr && m_program.use_count() == 1 )
         glDeleteProgram(*m_program);
 }
+    
+GLProgram& GLProgram::operator=(const GLProgram &rhs)
+{
+    if ( m_program != nullptr && m_program.use_count() == 1 )
+        glDeleteProgram(*m_program);
+
+    m_err = rhs.m_err;
+    m_program = rhs.m_program;
+    m_attributes = rhs.m_attributes;
+    m_uniforms = rhs.m_uniforms;
+
+    return *this;
+}
 
 void GLProgram::init()
 {
     if ( m_program != nullptr && m_program.use_count() == 1 )
         glDeleteProgram(*m_program);
 
+    // create the program
     m_program = std::shared_ptr<GLuint>(new GLuint);
     *m_program = glCreateProgram();
+
+    m_attributes = std::shared_ptr<StringMap>(new StringMap());
+    m_uniforms = std::shared_ptr<StringMap>(new StringMap());
 }
 
 bool GLProgram::attachShader(const GLShader &shader)
@@ -129,5 +149,68 @@ void GLProgram::use()
 void GLProgram::resetUsed()
 {
     glUseProgram(0);
+}
+    
+GLint GLProgram::getUniformLocation(const GLstring& name)
+{
+    if ( m_program == nullptr )
+    {
+        m_err = "Program not initialized";
+        return -1;
+    }
+
+    GLint loc;
+
+    try {
+        if ( m_attributes == nullptr )
+            m_attributes = std::shared_ptr<StringMap>(new StringMap()); 
+        loc = m_uniforms->at(name);
+    } catch ( const std::out_of_range &e ) {
+        loc = glGetUniformLocation(*m_program, name.c_str());
+        if ( loc == -1 )
+        {
+            std::ostringstream sout;
+            sout << "Could not get location of uniform \"" << name << "\"";
+            m_err = sout.str();
+            return -1;
+        }
+
+        m_uniforms->insert(std::pair<GLstring,GLint>(name,loc));
+    }
+    return loc;
+}
+
+GLint GLProgram::getAttributeLocation(const GLstring& name)
+{
+    if ( m_program == nullptr )
+    {
+        m_err = "Program not initialized";
+        return -1;
+    }
+
+    GLint loc;
+
+    try {
+        if ( m_attributes == nullptr )
+            m_attributes = std::shared_ptr<StringMap>(new StringMap()); 
+        loc = m_attributes->at(name);
+    } catch ( const std::out_of_range &e ) {
+        loc = glGetAttribLocation(*m_program, name.c_str());
+        if ( loc == -1 )
+        {
+            std::ostringstream sout;
+            sout << "Could not get location of attribute \"" << name << "\"";
+            m_err = sout.str();
+            return -1;
+        }
+
+        m_attributes->insert(std::pair<GLstring,GLint>(name,loc));
+    }
+    return loc;
+}
+
+GLuint GLProgram::getProgramIdx() const
+{
+    return *m_program;
 }
 
