@@ -28,6 +28,9 @@ public:
     bool attachShader(const GLShader &shader);
     bool detachShader(const GLShader &shader);
 
+    // bind attribute locations must be done before linking
+    bool bindAttributeLocation(const GLstring& name, GLuint location);
+
     // link the program.
     // returns false on failure. To get error log use getLastError()
     bool link();
@@ -57,6 +60,8 @@ protected:
 
     std::shared_ptr<StringMap> m_attributes;
     std::shared_ptr<StringMap> m_uniforms;
+
+    bool m_linked;
 };
 
 #endif // GLPROGRAM_HPP

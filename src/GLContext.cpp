@@ -6,14 +6,15 @@
 #include "GLUniform.hpp"
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <QTextStream>
 #include <QApplication>
-
-#include <glm/glm.hpp>
 
 #include <iostream>
 
 GLint locVerts;
+
+#define CHECKERR err = glGetError(); if ( err != GL_NO_ERROR ) { if ( err == GL_INVALID_OPERATION ) std::cout << "Error: INVALID_OPERATION Line " << __LINE__ << std::endl; else if (err == GL_INVALID_VALUE) std::cout << "Error: INVALID_VALUE Line " << __LINE__ << std::endl; else std::cout << "Error: Line " << __LINE__ << std::endl; }
 
 GLContext::GLContext(QWidget *parent) :
     QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer), parent),
@@ -49,22 +50,50 @@ void GLContext::initializeGL()
 
     // initialize program
     m_glProgram.init(); 
+    
     if ( !m_glProgram.attachShader(vshader) )
         return reportError(QString::fromUtf8(m_glProgram.getLastError().c_str()));
     if ( !m_glProgram.attachShader(fshader) )
         return reportError(QString::fromUtf8(m_glProgram.getLastError().c_str()));
+    
+    if ( !m_glProgram.bindAttributeLocation("v_color",20) )
+        return reportError(QString::fromUtf8(m_glProgram.getLastError().c_str()));
+CHECKERR
+    if ( !m_glProgram.bindAttributeLocation("v_position",21) )
+        return reportError(QString::fromUtf8(m_glProgram.getLastError().c_str()));
+CHECKERR
+    
 
     // link program
+CHECKERR
     if ( !m_glProgram.link() )
         return reportError(QString::fromUtf8(m_glProgram.getLastError().c_str()));
+CHECKERR
 
     // initialize triangle
-    m_triangle.init(m_glProgram, "v_position", "v_color");
+    m_triangle.init(m_glProgram, "v_position", "v_color", "model");
+CHECKERR
+    m_triangle2.init(m_glProgram, "v_position", "v_color", "model");
+CHECKERR
+
+    // rotate then translate
+    m_triangle.updateModel(glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(0.25f,0.25f,0.0f)),180.0f, glm::vec3(0.0f, 0.0f, -1.0f)));
+CHECKERR
+    m_triangle2.updateModel(glm::translate(glm::mat4(1.0f), glm::vec3(-0.25,-0.25,0.0f)));
+CHECKERR
 }
 
 void GLContext::paintGL()
 {
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    m_glProgram.use();
+
     m_triangle.draw();
+    m_triangle2.draw();
+    
+    m_glProgram.resetUsed();
 }
 
 bool GLContext::good() const

@@ -32,6 +32,7 @@ protected:
     GLBuffer               m_glVertexIdxBuffer;
     std::vector<GLUniform> m_glUniforms;
     Triangle               m_triangle;
+    Triangle               m_triangle2;
 };
 
 #endif // GLCONTEXT_HPP

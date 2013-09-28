@@ -286,92 +286,92 @@ void GLUniform::set()
         }
         case MAT2F:
         {
-            glProgramUniformMatrix2fv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLfloat*>(m_data));
+            glProgramUniformMatrix2fv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLfloat*>(m_data));
             break;
         }
         case MAT3F:
         {
-            glProgramUniformMatrix3fv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLfloat*>(m_data));
+            glProgramUniformMatrix3fv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLfloat*>(m_data));
             break;
         }
         case MAT4F:
         {
-            glProgramUniformMatrix4fv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLfloat*>(m_data));
+            glProgramUniformMatrix4fv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLfloat*>(m_data));
             break;
         }
         case MAT2X3F:
         {
-            glProgramUniformMatrix2x3fv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLfloat*>(m_data));
+            glProgramUniformMatrix2x3fv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLfloat*>(m_data));
             break;
         }
         case MAT3X2F:
         {
-            glProgramUniformMatrix3x2fv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLfloat*>(m_data));
+            glProgramUniformMatrix3x2fv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLfloat*>(m_data));
             break;
         }
         case MAT2X4F:
         {
-            glProgramUniformMatrix2x4fv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLfloat*>(m_data));
+            glProgramUniformMatrix2x4fv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLfloat*>(m_data));
             break;
         }
         case MAT4X2F:
         {
-            glProgramUniformMatrix4x2fv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLfloat*>(m_data));
+            glProgramUniformMatrix4x2fv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLfloat*>(m_data));
             break;
         }
         case MAT3X4F:
         {
-            glProgramUniformMatrix3x4fv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLfloat*>(m_data));
+            glProgramUniformMatrix3x4fv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLfloat*>(m_data));
             break;
         }
         case MAT4X3F:
         {
-            glProgramUniformMatrix4x3fv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLfloat*>(m_data));
+            glProgramUniformMatrix4x3fv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLfloat*>(m_data));
             break;
         }
         case MAT2D:
         {
-            glProgramUniformMatrix2dv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLdouble*>(m_data));
+            glProgramUniformMatrix2dv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLdouble*>(m_data));
             break;
         }
         case MAT3D:
         {
-            glProgramUniformMatrix3dv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLdouble*>(m_data));
+            glProgramUniformMatrix3dv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLdouble*>(m_data));
             break;
         }
         case MAT4D:
         {
-            glProgramUniformMatrix4dv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLdouble*>(m_data));
+            glProgramUniformMatrix4dv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLdouble*>(m_data));
             break;
         }
         case MAT2X3D:
         {
-            glProgramUniformMatrix2x3dv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLdouble*>(m_data));
+            glProgramUniformMatrix2x3dv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLdouble*>(m_data));
             break;
         }
         case MAT3X2D:
         {
-            glProgramUniformMatrix3x2dv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLdouble*>(m_data));
+            glProgramUniformMatrix3x2dv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLdouble*>(m_data));
             break;
         }
         case MAT2X4D:
         {
-            glProgramUniformMatrix2x4dv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLdouble*>(m_data));
+            glProgramUniformMatrix2x4dv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLdouble*>(m_data));
             break;
         }
         case MAT4X2D:
         {
-            glProgramUniformMatrix4x2dv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLdouble*>(m_data));
+            glProgramUniformMatrix4x2dv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLdouble*>(m_data));
             break;
         }
         case MAT3X4D:
         {
-            glProgramUniformMatrix3x4dv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLdouble*>(m_data));
+            glProgramUniformMatrix3x4dv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLdouble*>(m_data));
             break;    
         }
         case MAT4X3D:
         {
-            glProgramUniformMatrix4x3dv(m_program.getProgramIdx(), m_count, m_transpose, m_uniform, reinterpret_cast<const GLdouble*>(m_data));
+            glProgramUniformMatrix4x3dv(m_program.getProgramIdx(), m_uniform, m_count, m_transpose, reinterpret_cast<const GLdouble*>(m_data));
             break;
         }
     }

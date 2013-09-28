@@ -11,13 +11,35 @@ GLProgram::GLProgram() :
     m_program(nullptr),
     m_err(""),
     m_attributes(nullptr),
-    m_uniforms(nullptr)
+    m_uniforms(nullptr),
+    m_linked(false)
 {}
 
 GLProgram::~GLProgram()
 {
     if ( m_program != nullptr && m_program.use_count() == 1 )
         glDeleteProgram(*m_program);
+}
+    
+bool GLProgram::bindAttributeLocation(const GLstring& name, GLuint location)
+{
+    if ( m_program == nullptr || m_attributes == nullptr )
+    {
+        m_err = "Program must be initialized before binding attribute locations";
+        return false;
+    }
+    //else if ( m_linked )
+    //{
+    //    m_err = "Can not bind attributes after program is linked";
+    //    return false;
+    //}
+
+    glBindAttribLocation(*m_program, location, name.c_str());
+   
+    // add attribute to the map for lookup
+    m_attributes->insert(std::pair<GLstring,GLint>(name,static_cast<GLint>(location)));
+
+    return true;
 }
     
 GLProgram& GLProgram::operator=(const GLProgram &rhs)
@@ -29,6 +51,7 @@ GLProgram& GLProgram::operator=(const GLProgram &rhs)
     m_program = rhs.m_program;
     m_attributes = rhs.m_attributes;
     m_uniforms = rhs.m_uniforms;
+    m_linked = rhs.m_linked;
 
     return *this;
 }
@@ -133,6 +156,7 @@ bool GLProgram::link()
         return false;
     }
 
+    m_linked = true;
     return true;
 }
 
@@ -162,8 +186,6 @@ GLint GLProgram::getUniformLocation(const GLstring& name)
     GLint loc;
 
     try {
-        if ( m_attributes == nullptr )
-            m_attributes = std::shared_ptr<StringMap>(new StringMap()); 
         loc = m_uniforms->at(name);
     } catch ( const std::out_of_range &e ) {
         loc = glGetUniformLocation(*m_program, name.c_str());
@@ -191,8 +213,6 @@ GLint GLProgram::getAttributeLocation(const GLstring& name)
     GLint loc;
 
     try {
-        if ( m_attributes == nullptr )
-            m_attributes = std::shared_ptr<StringMap>(new StringMap()); 
         loc = m_attributes->at(name);
     } catch ( const std::out_of_range &e ) {
         loc = glGetAttribLocation(*m_program, name.c_str());
