@@ -28,11 +28,23 @@ bool GLProgram::bindAttributeLocation(const GLstring& name, GLuint location)
         m_err = "Program must be initialized before binding attribute locations";
         return false;
     }
-    //else if ( m_linked )
-    //{
-    //    m_err = "Can not bind attributes after program is linked";
-    //    return false;
-    //}
+    else if ( m_linked )
+    {
+        m_err = "Can not bind attributes after program is linked";
+        return false;
+    }
+    else if ( location > 15 )
+    {
+        GLint maxAttribs;
+        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxAttribs);
+        if ( static_cast<GLint>(location) > maxAttribs-1 )
+        {
+            std::ostringstream sout;
+            sout << "Cannot bind attribute to index " << location << " (The maximum index allowable is " << maxAttribs-1 << ")";
+            m_err = sout.str();
+            return false;
+        }
+    }
 
     glBindAttribLocation(*m_program, location, name.c_str());
    

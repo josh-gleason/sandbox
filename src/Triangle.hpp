@@ -30,11 +30,15 @@ public:
     void init(const GLProgram& program, const GLchar* positionAttribName, const GLchar* colorAttribName, const GLchar* modelUniformName)
     {
         glm::vec3 verts[] = {
-            glm::vec3(0.0f, 0.9f, 0.0f), glm::vec3(1.0f,0.0f,0.0f),
-            glm::vec3(-0.9f, -0.9f, 0.0f), glm::vec3(0.0f,1.0f,0.0f),
-            glm::vec3(0.9f, -0.9f, 0.0f), glm::vec3(0.0f,0.0f,1.0f)
+            glm::vec3(0.0f, 0.9f, -1.0f), glm::vec3(1.0f,0.0f,0.0f),
+            glm::vec3(-0.9f, -0.9f, -1.0f), glm::vec3(0.0f,1.0f,0.0f),
+            glm::vec3(0.9f, -0.9f, -1.0f), glm::vec3(0.0f,0.0f,1.0f)
         };
         GLubyte idx[] = {0,1,2};
+
+        static int x = 0;
+        if ( x++ == 1 )
+            verts[0].x = 0.9f;
 
         // copy program to member variables and use it
         m_program = program;
@@ -65,8 +69,6 @@ public:
             m_vertexBuffer.bind(GL_ELEMENT_ARRAY_BUFFER, 1);
             m_vertexBuffer.setData<GLubyte>(idx, sizeof(idx)/sizeof(GLubyte), GL_STATIC_DRAW, 1);
             m_vertexBuffer.unbindBuffers(GL_ELEMENT_ARRAY_BUFFER);
-
-            std::cout << GL_MAX_VERTEX_ATTRIBS << std::endl;
 
             // enable attributes
             m_vPositionAttrib.enable();
