@@ -93,21 +93,11 @@ void GLContext::initializeGL()
     if ( !m_glProgram.link() )
         return reportError(QString::fromUtf8(m_glProgram.getLastError().c_str()));
 
-    m_glProgram.use();
-
-    // get view and projection matrices (model handled by each shape)
-    m_view.init(m_glProgram, "view", MAT4F);
-    m_view.loadData(m_camera.getViewMatrix());
-    m_view.set();
-
-    // set perspective
-    m_projection.init(m_glProgram, "projection", MAT4F);
-    m_projection.loadData(glm::perspective(FOV_DEG, float(this->height())/float(this->width()), FIELD_NEAR, FIELD_FAR));
-    m_projection.set();
+    m_projectionMatrix = glm::perspective(FOV_DEG, float(this->height())/float(this->width()), FIELD_NEAR, FIELD_FAR); 
 
     // initialize triangles
-    m_triangle.init(m_glProgram, "v_position", "v_color", "model");
-    m_triangle2.init(m_glProgram, "v_position", "v_color", "model");
+    m_triangle.init(m_glProgram, "v_position", "v_color", "u_mvpMatrix");
+    m_triangle2.init(m_glProgram, "v_position", "v_color", "u_mvpMatrix");
 
     // rotate then translate
     m_triangle.updateModel(glm::scale(glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(0.25f,0.25f,0.0f)), 180.0f, glm::vec3(0.0f, 0.0f, -1.0f)),glm::vec3(0.33f,0.33f,1.0f)));
@@ -120,10 +110,11 @@ void GLContext::paintGL()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     m_glProgram.use();
-
-    m_triangle.draw();
-    m_triangle2.draw();
-    
+        // create the view-projection matrix (the model matrix is multiplied and set in the model)
+        glm::mat4 viewProjectionMatrix = m_projectionMatrix * m_camera.getViewMatrix();
+        
+        m_triangle.draw(viewProjectionMatrix);
+        m_triangle2.draw(viewProjectionMatrix);
     m_glProgram.resetUsed();
 }
 
@@ -183,10 +174,6 @@ void GLContext::mouseMoveEvent(QMouseEvent * event)
     m_camera.rotateHoriz(thetaHoriz);
 
     m_previousMousePos = event->pos();
-
-    // set the matrix
-    m_view.loadData(m_camera.getViewMatrix());
-    m_view.set();
     
     this->repaint();
 }
@@ -216,17 +203,10 @@ void GLContext::timerTick()
     if ( (m_keyFlags & ROTATE_CW) )
         m_camera.rotateStraight(-1.f);
 
-    if ( m_keyFlags != 0 )
-    {
-        m_view.loadData(m_camera.getViewMatrix());
-        m_view.set();
-    }
-    else    // do not repaint
-    {
+    if ( m_keyFlags == 0 ) // do not repaint
         return;
-    }
-
-    this->repaint();
+    else
+        this->repaint();
 }
 
 bool GLContext::good() const

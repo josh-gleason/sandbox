@@ -1,7 +1,10 @@
 #include "Camera.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/virtrev/xstream.hpp>
+
+// TODO : Replace the incremental changes to the matrices to use pre-stored angles for each degree
+//        freedom.  This is to prevent the possibility of warping the view because of floating
+//        point errors.
 
 Camera::Camera(glm::vec4 position, CameraMode mode) :
     m_orientation(glm::vec4(0.0f, 0.0f, -1.0f, 1.0f)),
@@ -50,14 +53,14 @@ void Camera::rotateStraight(GLfloat theta)
 
     if ( m_previousDirection != STRAIGHT || m_previousTheta != theta )
     {
-        m_previousRotation = glm::rotate(glm::mat4(1.0f), theta, glm::vec3(m_orientation.rgb()));
+        m_previousRotation = glm::rotate(glm::mat4(1.0f), theta, glm::vec3(m_orientation.xyz()));
         m_previousDirection = STRAIGHT;
         m_previousTheta = theta;
     }
 
     m_up = m_previousRotation * m_up;
     m_normal = m_previousRotation * m_normal;
-    m_rotation = glm::lookAt(glm::vec3(0.0f,0.0f,0.0f), glm::vec3(m_orientation.rgb()), glm::vec3(m_up.rgb()));
+    m_rotation = glm::lookAt(glm::vec3(0.0f,0.0f,0.0f), glm::vec3(m_orientation.xyz()), glm::vec3(m_up.xyz()));
 
     this->updateView();
 }
@@ -66,7 +69,7 @@ void Camera::rotateVert(GLfloat theta)
 {
     if ( m_previousDirection != VERT || m_previousTheta != theta )
     {
-        m_previousRotation = glm::rotate(glm::mat4(1.0f), theta, glm::vec3(m_normal.rgb()));
+        m_previousRotation = glm::rotate(glm::mat4(1.0f), theta, glm::vec3(m_normal.xyz()));
         m_previousDirection = VERT;
         m_previousTheta = theta;
     }
@@ -84,7 +87,7 @@ void Camera::rotateHoriz(GLfloat theta)
     if ( m_previousDirection != HORIZ || m_previousTheta != theta )
     {
         if ( m_mode == CAMERA_FREE )
-            m_previousRotation = glm::rotate(glm::mat4(1.0f), theta, glm::vec3(m_up.rgb()));
+            m_previousRotation = glm::rotate(glm::mat4(1.0f), theta, glm::vec3(m_up.xyz()));
         else
             m_previousRotation = glm::rotate(glm::mat4(1.0f), theta, glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -99,7 +102,7 @@ void Camera::rotateHoriz(GLfloat theta)
     if ( m_mode == CAMERA_Y_LOCK_VERT || m_mode == CAMERA_Y_LOCK_BOTH )
         m_up = m_previousRotation * m_up;
 
-    m_rotation = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(m_orientation.rgb()), glm::vec3(m_up.rgb()));
+    m_rotation = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(m_orientation.xyz()), glm::vec3(m_up.xyz()));
 
     this->updateView();
 }

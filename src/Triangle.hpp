@@ -24,10 +24,10 @@ public:
 
     void updateModel(const glm::mat4& modelMatrix)
     {
-        m_modelUniform.loadData<glm::mat4>(modelMatrix); 
+        m_modelMatrix = modelMatrix;
     }
 
-    void init(const GLProgram& program, const GLchar* positionAttribName, const GLchar* colorAttribName, const GLchar* modelUniformName)
+    void init(const GLProgram& program, const GLchar* positionAttribName, const GLchar* colorAttribName, const GLchar* mvpUniformName)
     {
         glm::vec3 verts[] = {
             glm::vec3(0.0f, 0.9f, -1.0f), glm::vec3(1.0f,0.0f,0.0f),
@@ -45,7 +45,7 @@ public:
         //m_program.use();
         
         // initialize model uniform matrix
-        m_modelUniform.init(m_program, modelUniformName, MAT4F);
+        m_mvpUniform.init(m_program, mvpUniformName, MAT4F);
         this->updateModel(glm::mat4(1.0f));
 
         // get attribute locations
@@ -88,10 +88,11 @@ public:
         m_vao.unbindAll();
     }
 
-    void draw()
+    void draw(const glm::mat4 &viewProjectionMatrix)
     {
         // set the uniform
-        m_modelUniform.set();
+        m_mvpUniform.loadData(viewProjectionMatrix * m_modelMatrix);
+        m_mvpUniform.set();
        
         // bind the VAO and draw using the indicies in element array buffer
         m_vao.bind();
@@ -105,7 +106,8 @@ protected:
     GLAttribute    m_vColorAttrib;
     GLVertexArray  m_vao;
     GLProgram      m_program;
-    GLUniform      m_modelUniform;
+    GLUniform      m_mvpUniform;
+    glm::mat4      m_modelMatrix;
 };
 
 #endif // TRIANGLE_HPP

@@ -41,9 +41,8 @@ protected:
     GLProgram              m_glProgram;
     GLBuffer               m_glVertexPosBuffer;
     GLBuffer               m_glVertexIdxBuffer;
-    GLUniform              m_view;
-    GLUniform              m_projection;
-    Camera                 m_camera;
+    glm::mat4              m_projectionMatrix;
+    Camera                 m_camera;    // stores/manipulates view matrix
     
     Triangle               m_triangle;
     Triangle               m_triangle2;
