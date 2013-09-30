@@ -14,40 +14,14 @@ Model::Model() :
 Model::~Model()
 {}
 
-bool Model::init(const std::string& filename, GLAttribute &vPosition, GLAttribute &vNormal, const GLUniform& color)
+void Model::loadMaterials(aiMaterial** materials, unsigned int numMaterials)
 {
-    m_color = color;
-
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile( filename,
-        //aiProcess_CalcTangentSpace         |
-        //aiProcess_GenSmoothNormals         |    // gen smooth normals
-        aiProcess_GenNormals               |    // gen normals if lacking
-        aiProcess_Triangulate              |    // only get triangles
-        aiProcess_JoinIdenticalVertices    |    // save memory
-        aiProcess_SortByPType);                 // ?
-
-    if (!scene)
-        return false;
-
-    // generate enough buffers
-    // 1 buffer for each vertex for each mesh
-    // 1 element array buffer for each mesh (faces)
-    m_vertexBuffer.generate(scene->mNumMeshes * 2);
-    m_vao.create(scene->mNumMeshes);
-
-    unsigned int numMeshes = scene->mNumMeshes;
-    unsigned int numMaterials = scene->mNumMaterials;
-
-    m_numVaos = numMeshes;
-    m_materialIdx.resize(numMeshes);
+    // resize the material matrix
     m_materials.resize(numMaterials);
-    m_numElements.resize(numMeshes);
 
-    // copy the materials over
     for ( unsigned int i = 0; i < numMaterials; ++i )
     {
-        aiMaterial &material = *(scene->mMaterials[i]);
+        aiMaterial &material = *(materials[i]);
 
         aiColor3D ambient(0.0f, 0.0f, 0.0f);
         aiColor3D diffuse(0.0f, 0.0f, 0.0f);
@@ -61,65 +35,118 @@ bool Model::init(const std::string& filename, GLAttribute &vPosition, GLAttribut
         m_materials[i].ambient = glm::vec3(ambient.r, ambient.g, ambient.b);
         m_materials[i].specular = glm::vec3(specular.r, specular.g, specular.b);
     }
+}
 
+void Model::loadVertices(aiVector3D* positions, aiVector3D* normals, unsigned int numVertices, GLsizei bufferIdx)
+{
+    // interleave the positions and normals
+    glm::vec3 *verticesGlm = new glm::vec3[numVertices*2];
+
+    // copy positions and normals into single, interleaved array
+    for ( unsigned int i = 0; i < numVertices*2; i+=2 )
+    {
+        verticesGlm[i] = glm::vec3(positions[i/2].x, positions[i/2].y, positions[i/2].z);
+        verticesGlm[i+1] = glm::vec3(normals[i/2].x, normals[i/2].y, normals[i/2].z);
+    }
+
+    // load vertices into an array buffer
+    m_vertexBuffer.bind(GL_ARRAY_BUFFER, bufferIdx);
+    m_vertexBuffer.setData<glm::vec3>(verticesGlm, numVertices*2, GL_STATIC_DRAW, 0);
+    m_vertexBuffer.unbindBuffers(GL_ARRAY_BUFFER);
+    delete [] verticesGlm;
+}
+
+void Model::loadFaces(aiFace* faces, unsigned int numFaces, GLsizei bufferIdx)
+{
+    // guarenteed 3 elements per face
+    unsigned int numElements = numFaces * 3;
+
+    // using GLuints because meshes may be very large (FYI Ui just means unsigned int)
+    GLuint *facesUi = new GLuint[numElements];
+
+    // copy elements from faces to facesUi
+    for ( unsigned int j = 0; j < numElements; ++j )
+        facesUi[j] = faces[j/3].mIndices[j%3];
+
+    // load elements into buffer
+    m_vertexBuffer.bind(GL_ELEMENT_ARRAY_BUFFER, bufferIdx);
+    m_vertexBuffer.setData<GLuint>(facesUi, numFaces*3, GL_STATIC_DRAW, 0);
+    m_vertexBuffer.unbindBuffers(GL_ELEMENT_ARRAY_BUFFER);
+    delete [] facesUi;
+}
+
+void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPosition, GLAttribute& vNormal)
+{
+    unsigned int vertexBufferIdx;
+    unsigned int elementBufferIdx;
+
+    // resize the mesh information vectors
+    m_meshInfo.resize(numMeshes);
+
+    // one VAO for each mesh
+    m_vao.create(numMeshes);
+
+    // generate 2 buffers for each mesh, 1 for vertex/normals (interleaved) and 1 for the element array
+    m_vertexBuffer.generate(numMeshes * 2);
+
+    // copy vertices into meshes
     for ( unsigned int i = 0; i < numMeshes; ++i )
     {
-        // get all this in a vao
+        // provide easier access to *(meshes[i])
+        aiMesh& mesh = *(meshes[i]);
+
+        vertexBufferIdx = 2*i;
+        elementBufferIdx = 2*i + 1;
+
+        // enable the VAO for this mesh and enable the necessary attributes
+        // using braces/indentation to show what code applies to this vao
         m_vao.bind(i);
-        aiMesh& mesh = *(scene->mMeshes[i]);
-        
-        // Load in vertices
-        unsigned int numVerts = mesh.mNumVertices;
-        aiVector3D *position = mesh.mVertices;
-        aiVector3D *normal = mesh.mNormals;
-
-        // interleave the positions and normals
-        glm::vec3 *verticesGlm = new glm::vec3[numVerts*2];
-
-        for ( unsigned int j = 0; j < numVerts*2; j+=2 )
         {
-            verticesGlm[j] = glm::vec3(position[j/2].x, position[j/2].y, position[j/2].z);
-            verticesGlm[j+1] = glm::vec3(normal[j/2].x, normal[j/2].y, normal[j/2].z);
+            // Load vertices and faces into buffers
+            this->loadVertices(mesh.mVertices, mesh.mNormals, mesh.mNumVertices, vertexBufferIdx);
+            this->loadFaces(mesh.mFaces, mesh.mNumFaces, elementBufferIdx);
+
+            // enable the attributes for the VAO
+            vPosition.enable();
+            vNormal.enable();
+
+            // bind and point data to the array buffer. The 3 is because vec3 is 3
+            // elements (GL_FLOAT implied). Step size is 2*sizeof(vec3) because the
+            // data is interleaved. The normals has an offset of sizeof(vec3) because
+            // of interleaving.
+            m_vertexBuffer.bind(GL_ARRAY_BUFFER, vertexBufferIdx);
+            vPosition.loadBufferData(3, sizeof(glm::vec3)*2);
+            vNormal.loadBufferData(3, sizeof(glm::vec3)*2, sizeof(glm::vec3));
+
+            // bind the element array buffer for the VAO
+            m_vertexBuffer.bind(GL_ELEMENT_ARRAY_BUFFER, elementBufferIdx);
         }
-
-        m_vertexBuffer.bind(GL_ARRAY_BUFFER, i*2);
-        m_vertexBuffer.setData<glm::vec3>(verticesGlm, numVerts*2, GL_STATIC_DRAW, 0);
-        m_vertexBuffer.unbindBuffers(GL_ARRAY_BUFFER);
-        delete [] verticesGlm;
-
-        // Load in Faces
-        unsigned int numFaces = mesh.mNumFaces;
-        aiFace *faces = mesh.mFaces;
-        GLuint *facesUi = new GLuint[numFaces*3];   // guarenteed 3 elements per face
-        for ( unsigned int j = 0; j < numFaces*3; ++j )
-            facesUi[j] = faces[j/3].mIndices[j%3];
-
-        m_vertexBuffer.bind(GL_ELEMENT_ARRAY_BUFFER, i*2+1);
-        m_vertexBuffer.setData<GLuint>(facesUi, numFaces*3, GL_STATIC_DRAW, 0);
-        m_vertexBuffer.unbindBuffers(GL_ELEMENT_ARRAY_BUFFER);
-        delete [] facesUi;
-        
-        m_numElements[i] = numFaces*3;
-
-        // bind the vertex buffer
-        m_vertexBuffer.bind(GL_ARRAY_BUFFER, i);
-
-        // set the attribute pointers
-        vPosition.enable();
-        vNormal.enable();
-
-        vPosition.loadBufferData(3, sizeof(glm::vec3)*2);
-        vNormal.loadBufferData(3, sizeof(glm::vec3)*2, sizeof(glm::vec3));
-
-        // the element array buffer MUST be bound before unbinding the VAO
-        m_vertexBuffer.bind(GL_ELEMENT_ARRAY_BUFFER, i+1);
-
-        // unbind the vao
+        // unbind the VAO so that no further changes will affect it
         m_vao.unbindAll();
-        
-        // save the material index
-        m_materialIdx[i] = mesh.mMaterialIndex;
+
+        // store the mesh info
+        m_meshInfo[i].materialIdx = mesh.mMaterialIndex;
+        m_meshInfo[i].numElements = 3 * mesh.mNumFaces;
     }
+}
+
+bool Model::init(const std::string& filename, GLAttribute &vPosition, GLAttribute &vNormal, const GLUniform& color)
+{
+    m_color = color;
+
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile( filename,
+        aiProcess_GenNormals               |    // gen normals if lacking
+        aiProcess_Triangulate              |    // only get triangles
+        aiProcess_JoinIdenticalVertices    |    // save memory
+        aiProcess_SortByPType);                 // ?
+
+    if (!scene)
+        return false;
+
+    // copy the materials over
+    this->loadMaterials(scene->mMaterials, scene->mNumMaterials);
+    this->loadMeshes(scene->mMeshes, scene->mNumMeshes, vPosition, vNormal);
 
     // initialize the model matrix
     m_modelMatrix = glm::mat4(1.0f);
@@ -134,13 +161,13 @@ const glm::mat4& Model::getModelMatrix() const
 
 void Model::draw()
 {
-    for ( unsigned int i = 0; i < m_numVaos; ++i )
+    for ( unsigned int i = 0; i < m_meshInfo.size(); ++i )
     {
-        m_color.loadData(m_materials[m_materialIdx[i]].diffuse);
+        m_color.loadData(m_materials[m_meshInfo[i].materialIdx].diffuse);
         m_color.set();
         
         m_vao.bind(i);
-        glDrawElements(GL_TRIANGLES, m_numElements[i], GL_UNSIGNED_INT, (void*)(0));
+        glDrawElements(GL_TRIANGLES, m_meshInfo[i].numElements, GL_UNSIGNED_INT, (void*)(0));
     }
     m_vao.unbindAll();
 }
