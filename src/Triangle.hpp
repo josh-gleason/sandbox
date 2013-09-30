@@ -27,25 +27,24 @@ public:
         m_modelMatrix = modelMatrix;
     }
 
-    void init(const GLProgram& program, const GLchar* positionAttribName, const GLchar* colorAttribName, const GLchar* mvpUniformName)
+    const glm::mat4& getModelMatrix() const
+    {
+        return m_modelMatrix;
+    }
+
+    void init(const GLProgram& program, const GLchar* positionAttribName, const GLchar* colorAttribName)
     {
         glm::vec3 verts[] = {
-            glm::vec3(0.0f, 0.9f, -1.0f), glm::vec3(1.0f,0.0f,0.0f),
-            glm::vec3(-0.9f, -0.9f, -1.0f), glm::vec3(0.0f,1.0f,0.0f),
-            glm::vec3(0.9f, -0.9f, -1.0f), glm::vec3(0.0f,0.0f,1.0f)
+            glm::vec3(0.0f, 0.9f, 1.0f), glm::vec3(1.0f,0.0f,0.0f),
+            glm::vec3(-0.9f, -0.9f, 1.0f), glm::vec3(0.0f,1.0f,0.0f),
+            glm::vec3(0.9f, -0.9f, 1.0f), glm::vec3(0.0f,0.0f,1.0f)
         };
         GLubyte idx[] = {0,1,2};
 
-        static int x = 0;
-        if ( x++ == 1 )
-            verts[0].x = 0.9f;
-
         // copy program to member variables and use it
         m_program = program;
-        //m_program.use();
         
         // initialize model uniform matrix
-        m_mvpUniform.init(m_program, mvpUniformName, MAT4F);
         this->updateModel(glm::mat4(1.0f));
 
         // get attribute locations
@@ -88,12 +87,8 @@ public:
         m_vao.unbindAll();
     }
 
-    void draw(const glm::mat4 &viewProjectionMatrix)
+    void draw()
     {
-        // set the uniform
-        m_mvpUniform.loadData(viewProjectionMatrix * m_modelMatrix);
-        m_mvpUniform.set();
-       
         // bind the VAO and draw using the indicies in element array buffer
         m_vao.bind();
         glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_BYTE, (void*)(0));
@@ -106,7 +101,6 @@ protected:
     GLAttribute    m_vColorAttrib;
     GLVertexArray  m_vao;
     GLProgram      m_program;
-    GLUniform      m_mvpUniform;
     glm::mat4      m_modelMatrix;
 };
 

@@ -13,7 +13,7 @@ TEMPLATE = app
 TARGET = ../bin/main
 DEPENDPATH += .
 INCLUDEPATH += .
-LIBS += -lGLEW
+LIBS += -lGLEW -lassimp
 
 CONFIG += warn_on
 CONFIG += debug

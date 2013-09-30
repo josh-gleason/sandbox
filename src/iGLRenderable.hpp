@@ -10,7 +10,8 @@ public:
     virtual ~iGLRenderable() {};
     
     // This will be called
-    virtual void draw(const glm::mat4 &viewProjection) = 0;
+    virtual const glm::mat4& getModelMatrix() const = 0;
+    virtual void draw() = 0;
 };
 
 #endif // IGLRENDERABLE_HPP

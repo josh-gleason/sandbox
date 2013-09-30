@@ -8,16 +8,18 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/ext.hpp>
 #include <QTextStream>
 #include <QApplication>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QTimer>
+#include <QCursor>
+#include <QResizeEvent>
 
 #include <iostream>
+
+#include "Model.hpp"
 
 const GLuint V_POSITION = 0;
 const GLuint V_COLOR = 1;
@@ -43,10 +45,12 @@ const float FIELD_FAR = 100.0f;
 GLContext::GLContext(QWidget *parent) :
     QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer), parent),
     m_good(true),
-    //m_camera( glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_Y_LOCK_VERT),
-    m_camera( glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_FREE),
-    m_keyFlags(0)
+    m_camera( glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_Y_LOCK_VERT),
+    m_keyFlags(0),
+    m_ignoreNextMovement(false),
+    m_mouseEnable(false)
 {
+    this->setCursor(QCursor(Qt::CrossCursor));
     connect(&m_timer,SIGNAL(timeout()),this,SLOT(timerTick()));
     m_timer.start(TICK_RATE);
 }
@@ -67,7 +71,13 @@ void GLContext::initializeGL()
     GLenum err = glewInit();
     if ( err != GLEW_OK )
         return reportError(QString::fromUtf8(reinterpret_cast<const char*>(glewGetErrorString(err))));
-   
+  
+    glEnable(GL_DEPTH_TEST);  // Enables Depth Testing
+    glEnable(GL_DOUBLEBUFFER);
+    glDepthFunc(GL_LESS);     // The Type Of Depth Test To Do
+    glShadeModel(GL_SMOOTH);  // Enables Smooth Color Shading
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
     // initilize shaders
     GLShader vshader;
     GLShader fshader;
@@ -93,28 +103,49 @@ void GLContext::initializeGL()
     if ( !m_glProgram.link() )
         return reportError(QString::fromUtf8(m_glProgram.getLastError().c_str()));
 
-    m_projectionMatrix = glm::perspective(FOV_DEG, float(this->height())/float(this->width()), FIELD_NEAR, FIELD_FAR); 
+
+    // get the uniform locations
+    m_uniformMatrixMvp.init(m_glProgram, "u_mvpMatrix", MAT4F); 
+
+    GLAttribute vPosition;
+    vPosition.init(m_glProgram, "v_position");
+
+    GLAttribute vNormal;
+    vNormal.init(m_glProgram, "v_normal");
+
+    GLUniform uColor;
+    uColor.init(m_glProgram, "u_color", VEC3F);
 
     // initialize triangles
-    m_triangle.init(m_glProgram, "v_position", "v_color", "u_mvpMatrix");
-    m_triangle2.init(m_glProgram, "v_position", "v_color", "u_mvpMatrix");
+    Model* model = new Model;
+    if ( !model->init("dragon_recon/dragon_vrip.ply", vPosition, vNormal, uColor) )
+        return reportError("Unable to load model");
 
-    // rotate then translate
-    m_triangle.updateModel(glm::scale(glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(0.25f,0.25f,0.0f)), 180.0f, glm::vec3(0.0f, 0.0f, -1.0f)),glm::vec3(0.33f,0.33f,1.0f)));
-    m_triangle2.updateModel(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(-0.25,-0.25,0.0f)), glm::vec3(0.25f,0.25f,1.0f)));
+    // add model to render list
+    m_renderTargets.push_back(std::shared_ptr<iGLRenderable>(model));
+
+    // move the camera back and up
+    m_camera.moveStraight(-0.3f);
+    m_camera.moveVert(0.2f);
+    m_camera.rotateVert(-15.0f);
 }
 
 void GLContext::paintGL()
 {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    // compute the view-projection matrix (the model matrix is multiplied by this for each shape)
+    glm::mat4 viewProjectionMatrix = m_projectionMatrix * m_camera.getViewMatrix();
 
+    // Render all targets in list
     m_glProgram.use();
-        // create the view-projection matrix (the model matrix is multiplied and set in the model)
-        glm::mat4 viewProjectionMatrix = m_projectionMatrix * m_camera.getViewMatrix();
-        
-        m_triangle.draw(viewProjectionMatrix);
-        m_triangle2.draw(viewProjectionMatrix);
+    for ( RenderList::iterator i = m_renderTargets.begin(); i != m_renderTargets.end(); ++i )
+    {
+        m_uniformMatrixMvp.loadData(viewProjectionMatrix * (*i)->getModelMatrix());
+        m_uniformMatrixMvp.set();
+        (*i)->draw();
+    }
     m_glProgram.resetUsed();
 }
 
@@ -164,24 +195,43 @@ void GLContext::keyReleaseEvent(QKeyEvent *event)
 
 void GLContext::mouseMoveEvent(QMouseEvent * event)
 {
-    if ( !(event->buttons() & Qt::LeftButton) )
+    if ( !m_mouseEnable )
         return;
 
-    GLfloat thetaVert = 2 * (m_previousMousePos.y() - event->y()) * (FOV_DEG / this->height());
-    GLfloat thetaHoriz = 2 * (m_previousMousePos.x() - event->x()) * (FOV_DEG / this->width());
+    GLfloat thetaVert = 2 * (m_cursorPosition.y() - event->globalY()) * (FOV_DEG / this->height());
+    GLfloat thetaHoriz = 2 * (m_cursorPosition.x() - event->globalX()) * (FOV_DEG / this->width());
 
     m_camera.rotateVert(thetaVert);
     m_camera.rotateHoriz(thetaHoriz);
 
-    m_previousMousePos = event->pos();
-    
+    QCursor::setPos(m_cursorPosition);
+
     this->repaint();
+}
+
+void GLContext::resizeGL(int width, int height)
+{
+    m_projectionMatrix = glm::perspective(FOV_DEG, float(width)/float(height), FIELD_NEAR, FIELD_FAR); 
+    glViewport(0, 0, width, height);
 }
 
 void GLContext::mousePressEvent(QMouseEvent * event)
 {
-    if ( event->buttons() & Qt::LeftButton )
-        m_previousMousePos = event->pos();
+    if ( (event->buttons() & Qt::LeftButton) != 0 )
+    {
+        m_mouseEnable = true;
+        m_cursorPosition = event->globalPos();
+        this->setCursor(Qt::BlankCursor);
+    }
+}
+
+void GLContext::mouseReleaseEvent(QMouseEvent * event)
+{
+    if ( (event->buttons() & Qt::LeftButton) == 0 && m_mouseEnable )
+    {
+        m_mouseEnable = false;
+        this->setCursor(Qt::CrossCursor);
+    }
 }
 
 void GLContext::timerTick()
