@@ -34,6 +34,10 @@ public:
         glVertexAttribPointer(m_attribute, count, type, normalize, step, reinterpret_cast<void*>(offset));
     }
 
+    GLint getAttributeIdx() const
+    {
+        return m_attribute;
+    }
 protected:
     GLint  m_attribute;
 };

@@ -15,6 +15,9 @@ struct Material
     glm::vec3 specular;
     glm::vec3 diffuse;
     glm::vec3 ambient;
+    glm::vec3 emissive;
+    glm::vec3 transparent;
+    float shininess;
 };
 
 struct MeshInfo
@@ -29,24 +32,31 @@ public:
     Model();
     ~Model();
 
-    bool init(const std::string& filename, GLAttribute& vPosition, GLAttribute& vNormal, const GLUniform& color);
+    bool init(const std::string& filename, GLAttribute& vPosition, GLAttribute& vNormal, GLAttribute& vUvCoord, const GLUniform& color);
     const glm::mat4& getModelMatrix() const;
     void draw();
+    void centerScaleModel();
 protected:
     void loadMaterials(aiMaterial** materials, unsigned int numMaterials);
-    void loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPosition, GLAttribute& vNormal);
-    void loadVertices(aiVector3D* positions, aiVector3D* normals, unsigned int numVertices, GLsizei bufferIdx);
+    void loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPosition, GLAttribute& vNormal, GLAttribute& vUvCoord);
+    void loadVertices(const aiMesh& mesh, GLsizei bufferIdx);
     void loadFaces(aiFace* faces, unsigned int numFaces, GLsizei bufferIdx);
+    void loadUvs(aiMesh &mesh, GLsizei bufferIdx);
 
-    std::string         m_filename;
-    GLBuffer            m_vertexBuffer;
-    GLUniform           m_color;
+    GLBuffer              m_vertexBuffer;
+    GLUniform             m_color;
 
     // one vao per mesh (m_meshInfo.size() == number of meshes)
-    GLVertexArray       m_vao;
+    GLVertexArray         m_vao;
     std::vector<Material> m_materials;
     std::vector<MeshInfo> m_meshInfo;
 
+    // used to find the bounding box
+    bool                  m_minMaxInit;
+    glm::vec3             m_minVertex;
+    glm::vec3             m_maxVertex;
+
+    // the model matrix
     glm::mat4           m_modelMatrix;
 };
 

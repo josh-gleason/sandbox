@@ -113,12 +113,17 @@ void GLContext::initializeGL()
     GLAttribute vNormal;
     vNormal.init(m_glProgram, "v_normal");
 
+    GLAttribute vUvCoord;
+    vUvCoord.init(m_glProgram, "v_uvCoord");
+    glVertexAttrib2f(vUvCoord.getAttributeIdx(), -1.0f, -1.0f);
+
     GLUniform uColor;
     uColor.init(m_glProgram, "u_color", VEC3F);
 
     // initialize triangles
     Model* model = new Model;
-    if ( !model->init("dragon_recon/dragon_vrip.ply", vPosition, vNormal, uColor) )
+    if ( !model->init("Elexis/elxis.obj", vPosition, vNormal, vUvCoord, uColor) )
+    //if ( !model->init("dragon_recon/dragon_vrip_res4.ply", vPosition, vNormal, vUvCoord, uColor) )
         return reportError("Unable to load model");
 
     // add model to render list
