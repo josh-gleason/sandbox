@@ -12,8 +12,8 @@ QMAKE_CXXFLAGS = -std=c++11 -g
 TEMPLATE = app
 TARGET = ../bin/main
 DEPENDPATH += .
-INCLUDEPATH += .
-LIBS += -lGLEW -lassimp
+INCLUDEPATH += ../include
+LIBS += -lGLEW -lassimp -l../lib/libglm.a
 
 CONFIG += warn_on
 CONFIG += debug
