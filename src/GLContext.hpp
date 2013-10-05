@@ -18,7 +18,7 @@ class GLContext : public QGLWidget
 {
     Q_OBJECT
 public:
-    GLContext(QWidget *parent = nullptr);
+    GLContext(const char* modelPath, QWidget *parent = nullptr);
 
     // check if initializeGL succeeded
     bool good() const;
@@ -61,6 +61,8 @@ protected:
     QPoint                 m_cursorPosition;
     bool                   m_ignoreNextMovement;
     bool                   m_mouseEnable;
+
+    std::string            m_modelPath;
 };
 
 #endif // GLCONTEXT_HPP

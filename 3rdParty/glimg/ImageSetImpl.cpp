@@ -6,6 +6,8 @@
 #include "ImageSetImpl.h"
 #include "Util.h"
 
+#include <iostream>
+
 namespace glimg
 {
 	detail::ImageSetImpl::ImageSetImpl( ImageFormat format, Dimensions dimensions,

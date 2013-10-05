@@ -5,11 +5,11 @@ in vec2 f_uvCoord;
 
 out vec4 out_color;
 
+uniform sampler2D texMap;
+
 void main()
 {
-    if ( f_uvCoord.x < 0.f || fract(f_uvCoord.s*8) < 0.1f || fract(f_uvCoord.t*8) < 0.1f )
-        out_color = vec4(f_color, 1.0);
-    else
-        discard;
+    vec4 texColor = (texture2D(texMap, f_uvCoord.xy) * 0.5) + (0.5 * vec4(f_color,1.0));
+    out_color = texColor;
 }
 

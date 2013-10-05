@@ -42,13 +42,14 @@ const float FOV_DEG = 45.0f;
 const float FIELD_NEAR = 0.01f;
 const float FIELD_FAR = 100.0f;
 
-GLContext::GLContext(QWidget *parent) :
+GLContext::GLContext(const char* modelPath, QWidget *parent) :
     QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer), parent),
     m_good(true),
     m_camera( glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_Y_LOCK_VERT),
     m_keyFlags(0),
     m_ignoreNextMovement(false),
-    m_mouseEnable(false)
+    m_mouseEnable(false),
+    m_modelPath(modelPath)
 {
     this->setCursor(QCursor(Qt::CrossCursor));
     connect(&m_timer,SIGNAL(timeout()),this,SLOT(timerTick()));
@@ -122,8 +123,7 @@ void GLContext::initializeGL()
 
     // initialize triangles
     Model* model = new Model;
-    if ( !model->init("Elexis/elxis.obj", vPosition, vNormal, vUvCoord, uColor) )
-    //if ( !model->init("dragon_recon/dragon_vrip_res4.ply", vPosition, vNormal, vUvCoord, uColor) )
+    if ( !model->init(m_modelPath, vPosition, vNormal, vUvCoord, uColor) )
         return reportError("Unable to load model");
 
     // add model to render list

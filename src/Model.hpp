@@ -7,8 +7,12 @@
 #include "GLUniform.hpp"
 #include "GLVertexArray.hpp"
 #include "GLBuffer.hpp"
+#include "GLTexture.hpp"
 
+#include <boost/filesystem.hpp>
 #include <assimp/scene.h>
+
+namespace bf = boost::filesystem;
 
 struct Material
 {
@@ -18,12 +22,17 @@ struct Material
     glm::vec3 emissive;
     glm::vec3 transparent;
     float shininess;
+
+    bool hasTexture;
+    GLTexture texture;
 };
 
 struct MeshInfo
 {
     GLsizei numElements;    // number of elements (3 per triangle)
     size_t materialIdx;     // which material to use
+    bool hasTexture;
+    size_t textureIx;
 };
 
 class Model : public iGLRenderable
@@ -58,6 +67,9 @@ protected:
 
     // the model matrix
     glm::mat4           m_modelMatrix;
+
+    // store the base path
+    bf::path            m_modelDir;
 };
 
 #endif // MODEL_HPP

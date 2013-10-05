@@ -35,8 +35,8 @@ HEADERS += ./glimg/OldDdsFmtConv.inc
 HEADERS += ./glimg/DdsLoaderInt.h
 HEADERS += ./glimg/Util.h
 
-../lib/libglm.a: ../temp $(OBJECTS)
-	$(AR) -rcs ../lib/libglm.a $(OBJECTS)
+../lib/libglimg.a: ../temp $(OBJECTS)
+	$(AR) -rcs ../lib/libglimg.a $(OBJECTS)
 
 ../temp/stb_image.o: ./glimg/stb_image.c ./glimg/stb_image.h
 	$(CC) $(CFLAGS) -o "$@" -c "$<"
