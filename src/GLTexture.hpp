@@ -46,9 +46,11 @@ public:
     // Data starts at lower left corner of back image and goes left to right, bottom to
     //     top, back to front.
     template <typename T>
-    bool setData(const T* data, const GLsizei* dimVals, GLsizei idx = 0, GLenum type = GL_UNSIGNED_BYTE, GLenum format = GL_RGBA, GLint internalFormat = GL_RGBA8UI, GLint lod = 0 );
+    bool setData(const T* data, const GLsizei* dimVals, GLsizei idx = 0, GLenum type = GL_UNSIGNED_BYTE, GLenum format = GL_RGB, GLint internalFormat = GL_RGBA, GLint lod = 0 );
 
-    bool loadImageData(const char* filename, GLsizei idx = 0, GLenum type = GL_UNSIGNED_BYTE, GLenum format = GL_RGBA, GLint internalFormat = GL_RGBA8UI, GLint lod = 0);
+    bool loadImageData(const char* filename, GLsizei idx = 0, GLenum internaFormat = GL_RGBA, GLint lod = 0);
+    void setSampling(GLenum target, GLenum minFilter = GL_NEAREST, GLenum magFilter = GL_NEAREST, GLenum wrapS = GL_WRAP_BORDER, GLenum wrapT = GL_WRAP_BORDER);
+    void generateMipMap(GLenum target);
 
     static void unbindTextures(GLenum target);
 protected:

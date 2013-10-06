@@ -120,6 +120,11 @@ void GLContext::initializeGL()
 
     GLUniform uColor;
     uColor.init(m_glProgram, "u_color", VEC3F);
+    
+    GLUniform uTexMap;
+    uTexMap.init(m_glProgram, "texMap", INT);
+    uTexMap.loadData(0);    // texture zero
+    uTexMap.set();
 
     // initialize triangles
     Model* model = new Model;
@@ -137,7 +142,7 @@ void GLContext::initializeGL()
 
 void GLContext::paintGL()
 {
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     // compute the view-projection matrix (the model matrix is multiplied by this for each shape)
@@ -174,6 +179,8 @@ void GLContext::keyPressEvent(QKeyEvent *event)
         m_keyFlags |= ROTATE_CCW;
     else if ( event->key() == Qt::Key_E )
         m_keyFlags |= ROTATE_CW;
+    else if ( event->key() == Qt::Key_Escape )
+        qApp->quit();
 }
 
 void GLContext::keyReleaseEvent(QKeyEvent *event)

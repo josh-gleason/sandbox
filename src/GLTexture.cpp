@@ -1,11 +1,10 @@
 #include "GLTexture.hpp"
 
-//#include <glimg/Loaders.h>
 #include <iostream>
 #include <IL/il.h>
 
-#include <opencv/cv.hpp>
-#include <opencv2/highgui/highgui.hpp>
+//#include <opencv/cv.hpp>
+//#include <opencv2/highgui/highgui.hpp>
 
 GLTexture::GLTexture() :
     m_texCount(nullptr),
@@ -62,70 +61,39 @@ void GLTexture::unbindTextures(GLenum target)
     glBindTexture(target, 0);
 }
 
-bool GLTexture::loadImageData(const char* filename, GLsizei idx, GLenum type, GLenum format, GLint internalFormat, GLint lod)
+void GLTexture::setSampling(GLenum target, GLenum minFilter, GLenum magFilter, GLenum wrapS, GLenum wrapT)
 {
-#if 0
-    try {
+    glTexParameteri(target, GL_TEXTURE_WRAP_S, wrapS);
+    glTexParameteri(target, GL_TEXTURE_WRAP_T, wrapT);
+    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilter);
+    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
+}
 
-        glimg::ImageSet* imgData = glimg::loaders::stb::LoadFromFile(filename);
-       
-        glimg::Dimensions dims = imgData->GetDimensions();
-        GLsizei dimVals[] = {dims.width, dims.height, dims.depth};
+void GLTexture::generateMipMap(GLenum target)
+{
+    glGenerateMipmap(target);
+}
 
-        cv::Mat img(dims.width, dims.height, CV_8UC3);
-        
-        std::cout << "Creating CV Image..." << std::endl;
-
-        std::cout << dims.width << ' ' << dims.height << ' ' << dims.depth << std::endl;
-
-        for ( int row = 0; row < dims.height; ++row )
-            for ( int col = 0; col < dims.width; ++col )
-                for ( int channel = 0; channel < 3; ++channel )
-                    img.at<uchar>(row, col, channel) = *((uchar*)(imgData->GetImageArray(lod)) + row * dims.width * 3 + col * 3 + channel);
-        std::cout << img << std::endl;
-        imshow("Image", img);
-        imwrite("temp.jpg",img);
-        cv::waitKey(0);
-        return this->setData(imgData->GetImageArray(lod), dimVals, idx, type, format, internalFormat, lod);
-    } catch ( glimg::loaders::stb::UnableToLoadException &e ) {
-        std::cerr << e.what() << std::endl;
-    } catch ( glimg::loaders::stb::StbLoaderException &e ) {
-        std::cerr << e.what() << std::endl;
-    }
-    return false;
-#else
-    ILuint a = ilGenImage();
-    ilBindImage(a);
+bool GLTexture::loadImageData(const char* filename, GLsizei idx, GLenum internalFormat, GLint lod)
+{
+    bool retVal = false;
     if ( ilLoadImage(filename) )
     {
+        // get image information
         ILubyte* data = ilGetData();
         ILint width = ilGetInteger(IL_IMAGE_WIDTH);
         ILint height = ilGetInteger(IL_IMAGE_HEIGHT);
         ILint depth = ilGetInteger(IL_IMAGE_DEPTH);
+        GLenum type = static_cast<GLenum>(ilGetInteger(IL_IMAGE_TYPE));
+        GLenum format = static_cast<GLenum>(ilGetInteger(IL_IMAGE_FORMAT));
         GLsizei dims[] = {width, height, depth};
-       
-        std::cout << width << ' ' << height << ' ' << depth << std::endl;
-        
-        cv::Mat img = cv::Mat(dims[1], dims[0], CV_8UC3).clone();
-       
-        for (int i = 0; i < height; i++)
-        {
-            for (int j = 0; j < width; j++)
-            {
-                cv::Vec3b d(data[(i*width + j)*3 + 0],
-                            data[(i*width + j)*3 + 1],
-                            data[(i*width + j)*3 + 2]);
-                img.at<cv::Vec3b>(i,j) = d;
-            }
-        }
 
-        imshow("Image", img);
-        imwrite("temp.jpg",img);
-        bool retVal = this->setData(data, dims, idx, type, format, internalFormat, lod);
+        // set the data to the texture
+        retVal = this->setData(data, dims, idx, type, format, internalFormat, lod);
+
+        // clean up
         ilClearImage();
-        return retVal;
     }
-    return false;
-#endif
+    return retVal;
 }
 

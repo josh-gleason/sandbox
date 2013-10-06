@@ -3,12 +3,14 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-
 #include <boost/shared_array.hpp>
-
 #include <glm/gtc/matrix_transform.hpp>
+#include <vector>
 
 #define CHECKERR err = glGetError(); if ( err != GL_NO_ERROR ) { if ( err == GL_INVALID_OPERATION ) std::cout << "Error: INVALID_OPERATION Line " << __LINE__ << std::endl; else if (err == GL_INVALID_VALUE) std::cout << "Error: INVALID_VALUE Line " << __LINE__ << std::endl; else std::cout << "Error: Line " << __LINE__ << std::endl; }
+
+const aiTextureType TEXTURE_TYPES[] = {aiTextureType_DIFFUSE, aiTextureType_NORMALS, aiTextureType_SPECULAR};
+const int TEXTURE_COUNT = sizeof(TEXTURE_TYPES)/sizeof(aiTextureType);
 
 Model::Model() :
     m_minMaxInit(false),
@@ -33,6 +35,54 @@ void Model::centerScaleModel()
     m_modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(scale,scale,scale)),translate);
 }
 
+void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
+{
+    m_materials[materialIdx].hasTexture.resize(TEXTURE_COUNT);
+    m_materials[materialIdx].texture.resize(TEXTURE_COUNT);
+    m_materials[materialIdx].texTarget.resize(TEXTURE_COUNT);
+
+    for ( int i = 0; i < TEXTURE_COUNT; ++i )
+    {
+        aiString texImg("");
+        material.Get(AI_MATKEY_TEXTURE(TEXTURE_TYPES[i], 0), texImg);
+        
+        m_materials[materialIdx].hasTexture[i] = (texImg != aiString(""));
+        if ( texImg != aiString("") )
+        {
+            // create local path to texture
+            bf::path texPath = m_modelDir / texImg.C_Str();
+
+            // generate a texture
+            GLTexture tex2d;
+            tex2d.generate(1);
+            tex2d.bind(GL_TEXTURE_2D);
+            
+            // load the texture into opengl
+            if ( !tex2d.loadImageData(texPath.c_str()) )
+            {
+                // try this path too
+                bf::path texPath = m_modelDir / "Texture" / texImg.C_Str();
+                if ( !tex2d.loadImageData(texPath.c_str()) )
+                {
+                    std::cout << "Unable to load texture \"" << texImg.C_Str()
+                              << "\"" << std::endl;
+                    m_materials[materialIdx].hasTexture[i] = false;
+                }
+            }
+
+            // save the texture
+            if ( m_materials[materialIdx].hasTexture[i] )
+            {
+                tex2d.generateMipMap(GL_TEXTURE_2D);
+                m_materials[materialIdx].texture[i] = tex2d;
+                m_materials[materialIdx].texTarget[i] = GL_TEXTURE_2D;
+            }
+            
+            tex2d.unbindTextures(GL_TEXTURE_2D);
+        }
+    }
+}
+
 void Model::loadMaterials(aiMaterial** materials, unsigned int numMaterials)
 {
     // resize the material matrix
@@ -42,54 +92,30 @@ void Model::loadMaterials(aiMaterial** materials, unsigned int numMaterials)
     {
         aiMaterial &material = *(materials[i]);
 
+        aiString name;
         aiColor3D ambient(0.0f, 0.0f, 0.0f);
         aiColor3D diffuse(0.0f, 0.0f, 0.0f);
         aiColor3D specular(0.0f, 0.0f, 0.0f);
         aiColor3D reflective(0.0f, 0.0f, 0.0f);
         aiColor3D emissive(0.0f, 0.0f, 0.0f);
         aiColor3D transparent(0.0f, 0.0f, 0.0f);
-        aiString texImg("");
 
+        material.Get(AI_MATKEY_NAME, name);
         material.Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
         material.Get(AI_MATKEY_COLOR_AMBIENT, ambient);
         material.Get(AI_MATKEY_COLOR_SPECULAR, specular);
         material.Get(AI_MATKEY_COLOR_EMISSIVE, emissive);
         material.Get(AI_MATKEY_COLOR_TRANSPARENT, transparent);
         material.Get(AI_MATKEY_SHININESS, m_materials[i].shininess);
-        material.Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texImg);
 
+        m_materials[i].name = name.C_Str();
         m_materials[i].diffuse = glm::vec3(diffuse.r, diffuse.g, diffuse.b);
         m_materials[i].ambient = glm::vec3(ambient.r, ambient.g, ambient.b);
         m_materials[i].specular = glm::vec3(specular.r, specular.g, specular.b);
         m_materials[i].emissive = glm::vec3(emissive.r, emissive.g, emissive.b);
         m_materials[i].transparent = glm::vec3(transparent.r, transparent.g, transparent.b);
-        m_materials[i].hasTexture = (texImg != aiString(""));
-        if ( m_materials[i].hasTexture )
-        {
-            bf::path texPath = m_modelDir / texImg.C_Str();
 
-            std::cout << texPath.c_str() << std::endl;
-            m_materials[i].texture.generate(1);
-
-            std::cout << "Binding texture" << std::endl;
-            m_materials[i].texture.bind(GL_TEXTURE_2D);
-
-            std::cout << "Loading" << std::endl;
-            if ( !m_materials[i].texture.loadImageData(texPath.c_str()) )
-            {
-                std::cout << "Unable to load texture \"" << texPath.c_str()
-                          << "\"" << std::endl;
-                bf::path texPath = m_modelDir / "Texture" / texImg.C_Str();
-                std::cout << "Trying \"" << texPath.c_str() << "\"" << std::endl;
-                if ( !m_materials[i].texture.loadImageData(texPath.c_str()) )
-                {
-                    std::cout << "Unable to load texture \"" << texPath.c_str()
-                              << "\"" << std::endl;
-                    m_materials[i].hasTexture = false;
-                }
-            }
-            m_materials[i].texture.unbindTextures(GL_TEXTURE_2D);
-        }
+        this->loadMaterialTextures(i, material);
     }
 }
 
@@ -269,10 +295,10 @@ bool Model::init(const std::string& filename, GLAttribute &vPosition, GLAttribut
         aiProcess_JoinIdenticalVertices    |    // save memory
         aiProcess_SortByPType              |    // This and the next one ignore points/lines
         aiProcess_FindDegenerates);             // Remove bad triangles (share one or more points)
-  
+
     if (!scene)
         return false;
-    
+
     m_minMaxInit = false;
     // copy the materials over
     this->loadMaterials(scene->mMaterials, scene->mNumMaterials);
@@ -280,7 +306,6 @@ bool Model::init(const std::string& filename, GLAttribute &vPosition, GLAttribut
 
     // initialize the model matrix
     this->centerScaleModel();
-
     return true;
 }
 
@@ -289,16 +314,34 @@ const glm::mat4& Model::getModelMatrix() const
     return m_modelMatrix;
 }
 
+bool Model::isWire(const std::string& name)
+{
+    if ( name.size() >= 4 )
+    {
+        return ( name[0] == 'w' &&
+                 name[1] == 'i' &&
+                 name[2] == 'r' &&
+                 name[3] == 'e' );
+    }
+    return false;
+}
+
 void Model::draw()
 {
     for ( unsigned int i = 0; i < m_meshInfo.size(); ++i )
     {
+        if ( this->isWire(m_materials[m_meshInfo[i].materialIdx].name) )
+            continue;
+            
         m_color.loadData(m_materials[m_meshInfo[i].materialIdx].diffuse);
         m_color.set();
-
-        if ( m_materials[m_meshInfo[i].materialIdx].hasTexture )
-            m_materials[m_meshInfo[i].materialIdx].texture.bind(GL_TEXTURE_2D);
         
+        if ( m_materials[m_meshInfo[i].materialIdx].hasTexture[0] )
+        {
+            Material &material = m_materials[m_meshInfo[i].materialIdx];
+            material.texture[0].setSampling(material.texTarget[0]);
+            material.texture[0].bind(material.texTarget[0]);
+        }
         m_vao.bind(i);
         glDrawElements(GL_TRIANGLES, m_meshInfo[i].numElements, GL_UNSIGNED_INT, (void*)(0));
     }

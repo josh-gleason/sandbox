@@ -9,7 +9,9 @@ uniform sampler2D texMap;
 
 void main()
 {
-    vec4 texColor = (texture2D(texMap, f_uvCoord.xy) * 0.5) + (0.5 * vec4(f_color,1.0));
-    out_color = texColor;
+    if ( f_uvCoord.x < 0 )
+        out_color = vec4(f_color, 1.0);
+    else
+        out_color = texture2D(texMap, f_uvCoord.xy);
 }
 
