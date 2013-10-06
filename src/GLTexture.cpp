@@ -33,9 +33,7 @@ bool GLTexture::generate(GLsizei n)
         m_texParameters = boost::shared_array<TexParameters>(new TexParameters[n]);
 
         GLuint *textures = new GLuint[n];
-        std::cout << "Generating textures..." << std::flush;
         glGenTextures(n, textures);
-        std::cout << "Complete!" << std::endl;
         for ( GLsizei i = 0; i < n; ++i )
         {
             m_texParameters[i].textureId = textures[i];
