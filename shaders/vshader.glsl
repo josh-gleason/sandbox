@@ -2,18 +2,24 @@
 
 in vec3 v_position;
 in vec3 v_normal;
-in vec2 v_uvCoord;
 
-uniform mat4 u_mvpMatrix;
-uniform vec3 u_color;
+out vec3 f_position;
+out vec3 f_normal;
 
-out vec3 f_color;
-out vec2 f_uvCoord;
+// normalMatrix = transpose(inverse(mvMatrix))
+layout (std140) uniform Matrices
+{
+    uniform mat4 mvMatrix;
+    uniform mat4 mvpMatrix;
+    uniform mat4 normalMatrix;
+};
 
 void main()
 {
-    f_uvCoord = v_uvCoord;
-    f_color = clamp((v_normal+1.0)*0.25,0.f,0.5f)+u_color*0.5;
-    gl_Position = u_mvpMatrix * vec4(v_position,1.0);
+    // we want the position and normal in view coordinates not projection
+    vec4 viewPosition = Matrices.mvMatrix * vec4(v_position,1.0);
+    f_position = viewPosition.xyz / viewPosition.w;
+    f_normal = normalize(Matrices.normalMatrix * vec4(v_normal,1.0)).xyz;
+    gl_Position = Matrices.mvpMatrix * vec4(v_position,1.0);
 }
 

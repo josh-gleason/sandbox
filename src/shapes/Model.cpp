@@ -9,8 +9,9 @@
 
 #define CHECKERR err = glGetError(); if ( err != GL_NO_ERROR ) { if ( err == GL_INVALID_OPERATION ) std::cout << "Error: INVALID_OPERATION Line " << __LINE__ << std::endl; else if (err == GL_INVALID_VALUE) std::cout << "Error: INVALID_VALUE Line " << __LINE__ << std::endl; else std::cout << "Error: Line " << __LINE__ << std::endl; }
 
-const aiTextureType TEXTURE_TYPES[] = {aiTextureType_DIFFUSE, aiTextureType_NORMALS, aiTextureType_SPECULAR};
-const int TEXTURE_COUNT = sizeof(TEXTURE_TYPES)/sizeof(aiTextureType);
+// same order as TEXTURE_TYPES defined in iGLRenderable
+const aiTextureType AI_TEXTURE_TYPES[] = {aiTextureType_DIFFUSE, aiTextureType_SPECULAR, aiTextureType_NORMALS};
+const int TEXTURE_TYPE_COUNT = sizeof(AI_TEXTURE_TYPES)/sizeof(aiTextureType);
 
 Model::Model() :
     m_minMaxInit(false),
@@ -37,18 +38,38 @@ void Model::centerScaleModel()
 
 void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
 {
-    m_materials[materialIdx].hasTexture.resize(TEXTURE_COUNT);
-    m_materials[materialIdx].texture.resize(TEXTURE_COUNT);
-    m_materials[materialIdx].texTarget.resize(TEXTURE_COUNT);
+    m_materials[materialIdx].drawType = DRAW_MATERIAL;
+    m_materials[materialIdx].texture.resize(TEXTURE_TYPE_COUNT);
+    m_materials[materialIdx].texTarget.resize(TEXTURE_TYPE_COUNT);
 
-    for ( int i = 0; i < TEXTURE_COUNT; ++i )
+    for ( int i = 0; i < TEXTURE_TYPE_COUNT; ++i )
     {
+        std::cout << "i : " << i << std::endl;
         aiString texImg("");
-        material.Get(AI_MATKEY_TEXTURE(TEXTURE_TYPES[i], 0), texImg);
+        aiReturn queryResult;
         
-        m_materials[materialIdx].hasTexture[i] = (texImg != aiString(""));
-        if ( texImg != aiString("") )
+        queryResult = material.Get(AI_MATKEY_TEXTURE(AI_TEXTURE_TYPES[i], 0), texImg);
+
+        if ( queryResult == AI_SUCCESS )
         {
+            switch (AI_TEXTURE_TYPES[i])
+            {
+                case aiTextureType_DIFFUSE:
+                    std::cout << "Found diffuse" << std::endl;
+                    break;
+                case aiTextureType_SPECULAR:
+                    std::cout << "Found specular" << std::endl;
+                    break;
+                case aiTextureType_NORMALS:
+                    std::cout << "Found bump" << std::endl;
+                    break;
+                default:
+                    std::cout << "Found unknown" << std::endl;
+            }
+
+            m_materials[materialIdx].drawType =
+                static_cast<DrawType>(static_cast<unsigned int>(m_materials[materialIdx].drawType) | TEXTURE_TYPES[i]);
+
             // activate texture i
             glActiveTexture(GL_TEXTURE0 + i);
 
@@ -69,22 +90,43 @@ void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
                 {
                     std::cout << "Unable to load texture \"" << texImg.C_Str()
                               << "\"" << std::endl;
-                    m_materials[materialIdx].hasTexture[i] = false;
+                    // disable bit
+                    m_materials[materialIdx].drawType =
+                        static_cast<DrawType>(static_cast<unsigned int>(m_materials[materialIdx].drawType) & ~(TEXTURE_TYPES[i]));
                 }
             }
 
             // save the texture
-            if ( m_materials[materialIdx].hasTexture[i] )
+            if ( (m_materials[materialIdx].drawType & TEXTURE_TYPES[i]) == TEXTURE_TYPES[i] )
             {
+                std::cout << "Using texture type : " << i << std::endl;
                 m_materials[materialIdx].useTexture = true;
                 tex2d.generateMipMap(GL_TEXTURE_2D);
                 m_materials[materialIdx].texture[i] = tex2d;
                 m_materials[materialIdx].texTarget[i] = GL_TEXTURE_2D;
             }
-            
+           
             tex2d.unbindTextures(GL_TEXTURE_2D);
         }
+        else
+        {
+            switch (AI_TEXTURE_TYPES[i])
+            {
+                case aiTextureType_DIFFUSE:
+                    std::cout << "NOT FOUND diffuse" << std::endl;
+                    break;
+                case aiTextureType_SPECULAR:
+                    std::cout << "NOT FOUND specular" << std::endl;
+                    break;
+                case aiTextureType_NORMALS:
+                    std::cout << "NOT FOUND bump" << std::endl;
+                    break;
+                default:
+                    std::cout << "NOT FOUND unknown" << std::endl;
+            }
+        }
     }
+    std::cout << "FINAL TEXTURE TYPE : " << m_materials[materialIdx].drawType << std::endl;
 
     // reset active texture
     glActiveTexture(GL_TEXTURE0);
@@ -392,7 +434,7 @@ void Model::setUniforms(const std::vector<GLUniform> &uniforms, DrawType type)
             m_uniforms.uShininess = uniforms[3];
             break;
         }
-        case DrawType::DRAW_TEXTURE:
+        case DrawType::DRAW_TEXTURE_DSB:
         {
             m_uniforms.uTexBlend  = uniforms[0];
             m_uniforms.uDiffuse   = uniforms[1];
@@ -400,6 +442,10 @@ void Model::setUniforms(const std::vector<GLUniform> &uniforms, DrawType type)
             m_uniforms.uAmbient   = uniforms[3];
             m_uniforms.uShininess = uniforms[4];
             break;
+        }
+        default:
+        {
+            std::cout << "Warning: type not handled" << std::endl;
         }
     }
 }
@@ -411,40 +457,39 @@ void Model::draw(DrawType type)
         case DrawType::DRAW_MATERIAL:
         {
             for ( size_t i = 0; i < m_meshInfo.size(); ++i )
-                if ( !m_materials[m_meshInfo[i].materialIdx].useTexture )
+                if ( m_materials[m_meshInfo[i].materialIdx].drawType == DRAW_MATERIAL )
+                {
+                    std::cout << "No texture" << std::endl;
                     this->drawCommon(i);
+                }
             break;
         }
-        case DrawType::DRAW_TEXTURE:
+        case DrawType::DRAW_TEXTURE_DSB:
         {
             for ( size_t i = 0; i < m_meshInfo.size(); ++i )
             {
-                if ( !m_materials[m_meshInfo[i].materialIdx].useTexture )
+                if ( m_materials[m_meshInfo[i].materialIdx].drawType != DRAW_TEXTURE_DSB )
                     continue;
 
                 Material &material = m_materials[m_meshInfo[i].materialIdx];
-                for ( size_t i = 0; i < material.texture.size(); ++i )
+                for ( size_t i = 0; i < 3U; ++i )
                 {
                     glActiveTexture(GL_TEXTURE0 + i);
-                    if ( material.hasTexture[i] )
-                    {
-                        m_uniforms.uTexBlend.loadData(material.texBlend);
-                        m_uniforms.uTexBlend.set();
-                        material.texture[i].setSampling(material.texTarget[i], GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-                        material.texture[i].generateMipMap(material.texTarget[i]);
-                        material.texture[i].bind(material.texTarget[i]);
-                    }
-                    else
-                    {
-                        // unbind the texture so its all black
-                        material.texture[i].unbindTextures(material.texTarget[i]);
-                    }
+                    m_uniforms.uTexBlend.loadData(material.texBlend);
+                    m_uniforms.uTexBlend.set();
+                    material.texture[i].setSampling(material.texTarget[i], GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+                    material.texture[i].generateMipMap(material.texTarget[i]);
+                    material.texture[i].bind(material.texTarget[i]);
                 }
                 this->drawCommon(i);
             }
             // go back to default texture
             glActiveTexture(GL_TEXTURE0);
             break;
+        }
+        default:
+        {
+            std::cout << "Warning: Draw type not handeled" << std::endl;
         }
     }
 }

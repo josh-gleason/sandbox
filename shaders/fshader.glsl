@@ -1,17 +1,54 @@
 #version 410
 
-in vec3 f_color;
-in vec2 f_uvCoord;
+// fragment properties
+in vec3 f_normal;
+in vec3 f_position;
 
+// output color
 out vec4 out_color;
 
-uniform sampler2D texMap;
+// light properties
+layout (std140) uniform Light
+{
+    uniform vec3 position;
+    uniform vec3 diffuse;
+    uniform vec3 specular;
+    uniform vec3 ambient;
+};
+
+// material properties
+layout (std140) uniform Material
+{
+    uniform vec3  diffuse;
+    uniform vec3  specular;
+    uniform vec3  ambient;
+    uniform float shininess;
+};
 
 void main()
 {
-    if ( f_uvCoord.x < 0 )
-        out_color = vec4(f_color, 1.0);
-    else
-        out_color = texture2D(texMap, f_uvCoord.xy);
+    vec3 V = normalize(-f_position);
+    vec3 L = normalize(Light.position - f_position);
+    vec3 N = normalize(f_normal);
+    vec3 H = normalize(L + V);
+
+    vec3 kd = Material.diffuse;
+    vec3 ks = Material.specular;
+    vec3 ka = Material.ambient;
+    float a = Material.shininess;
+    
+    if( dot(L, N) < 0.0 )
+        ks = vec3(0.0, 0.0, 0.0);
+
+    vec3 id = Light.diffuse;
+    vec3 is = Light.specular;
+    vec3 ia = Light.ambient;
+
+    vec3 Ip =
+        ka*ia +
+        kd*max(dot(L,N),0)*id +
+        ks*pow(max(dot(H,N),0.0),max(a,2))*is;
+
+    out_color = vec4(Ip,1.0);
 }
 

@@ -25,7 +25,7 @@ struct Material
     float shininess;
     float texBlend;
 
-    std::vector<bool>      hasTexture;
+    DrawType               drawType;
     std::vector<GLTexture> texture;
     std::vector<GLenum>    texTarget;
     bool useTexture;
