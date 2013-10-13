@@ -1,5 +1,5 @@
-#ifndef GLCONTEXT_HPP
-#define GLCONTEXT_HPP
+#ifndef MAINAPP_HPP 
+#define MAINAPP_HPP
 
 // need to be included first
 #include "../glwrappers/GLProgram.hpp"
@@ -89,5 +89,5 @@ protected:
     std::string            m_modelPath;
 };
 
-#endif // GLCONTEXT_HPP
+#endif // MAINAPP_HPP 
 

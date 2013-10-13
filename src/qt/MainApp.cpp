@@ -90,9 +90,9 @@ void MainApp::initializeGL()
     // initilize shaders
     GLShader vshaderMaterial;
     GLShader fshaderMaterial;
-    if ( !vshaderMaterial.compileFromFile("./shaders/vshaderlight.glsl", GL_VERTEX_SHADER) )
+    if ( !vshaderMaterial.compileFromFile("./shaders/vshader.glsl", GL_VERTEX_SHADER) )
         return reportError(QString::fromUtf8(vshaderMaterial.getLastError().c_str()));
-    if ( !fshaderMaterial.compileFromFile("./shaders/fshaderlight.glsl", GL_FRAGMENT_SHADER) )
+    if ( !fshaderMaterial.compileFromFile("./shaders/fshader.glsl", GL_FRAGMENT_SHADER) )
         return reportError(QString::fromUtf8(fshaderMaterial.getLastError().c_str()));
     
     // initialize material program
@@ -131,9 +131,9 @@ void MainApp::initializeGL()
 
     GLShader vshaderTexture;
     GLShader fshaderTexture;
-    if ( !vshaderTexture.compileFromFile("./shaders/vshadertexture.glsl", GL_VERTEX_SHADER) )
+    if ( !vshaderTexture.compileFromFile("./shaders/vshaderTexDSB.glsl", GL_VERTEX_SHADER) )
         return reportError(QString::fromUtf8(vshaderTexture.getLastError().c_str()));
-    if ( !fshaderTexture.compileFromFile("./shaders/fshadertexture.glsl", GL_FRAGMENT_SHADER) )
+    if ( !fshaderTexture.compileFromFile("./shaders/fshaderTexDSB.glsl", GL_FRAGMENT_SHADER) )
         return reportError(QString::fromUtf8(fshaderTexture.getLastError().c_str()));
     
     // initialize material program
@@ -177,13 +177,13 @@ void MainApp::initializeGL()
    
     // set which textures correspond to which samplers
     GLUniform uDiffuseMap, uSpecularMap, uBumpMap;
-    uDiffuseMap.init(m_glProgramTexture, "u_diffuseMap", VEC3F);
+    uDiffuseMap.init(m_glProgramTexture, "u_diffuseMap", INT);// VEC3F);
     uDiffuseMap.loadData(TEXTURE_DIFFUSE);
     uDiffuseMap.set();
-    uSpecularMap.init(m_glProgramTexture, "u_specularMap", VEC3F);
+    uSpecularMap.init(m_glProgramTexture, "u_specularMap", INT);// VEC3F);
     uSpecularMap.loadData(TEXTURE_SPECULAR);
     uSpecularMap.set();
-    uBumpMap.init(m_glProgramTexture, "u_bumpMap", VEC3F);
+    uBumpMap.init(m_glProgramTexture, "u_bumpMap", INT); //VEC3F);
     uBumpMap.loadData(TEXTURE_BUMP);
     uBumpMap.set();
 
@@ -244,7 +244,7 @@ void MainApp::paintGL()
         m_uMatrixMvp_M.loadData(m_projectionMatrix * modelViewMatrix);
         m_uMatrixMv_M.loadData(modelViewMatrix);
         m_uMatrixNormal_M.loadData(glm::transpose(glm::inverse(modelViewMatrix)));
-        m_uLightPos_M.loadData(glm::vec3(0.5f, 4.0f, 0.5f));
+        m_uLightPos_M.loadData((viewMatrix*glm::vec4(4.0f, 4.0f, 4.0f, 1.0f)).xyz());
         m_uLightSpecular_M.loadData(glm::vec3(0.5f, 0.7f, 0.3f));
         m_uLightDiffuse_M.loadData(glm::vec3(0.8f, 0.6f, 0.3f));
         m_uLightAmbient_M.loadData(glm::vec3(0.4f, 0.4f, 0.4f));
@@ -281,8 +281,8 @@ void MainApp::paintGL()
         m_uLightDiffuse_T.set();
         m_uLightAmbient_T.set();
 
-        (*i)->setUniforms(textureUniforms, DRAW_TEXTURE);
-        (*i)->draw(DRAW_TEXTURE);
+        (*i)->setUniforms(textureUniforms, DRAW_TEXTURE_DSB);
+        (*i)->draw(DRAW_TEXTURE_DSB);
     }
     m_glProgramTexture.resetUsed();
 }
@@ -294,9 +294,9 @@ void MainApp::keyPressEvent(QKeyEvent *event)
     if ( event->key() == Qt::Key_W )
         m_keyFlags |= MOVE_FORWARD;
     else if ( event->key() == Qt::Key_S )
-        m_keyFlags |= MOVE_BACKWARD;        
+        m_keyFlags |= MOVE_BACKWARD;
     else if ( event->key() == Qt::Key_A )
-        m_keyFlags |= MOVE_LEFT;        
+        m_keyFlags |= MOVE_LEFT;
     else if ( event->key() == Qt::Key_D )
         m_keyFlags |= MOVE_RIGHT;
     else if ( event->key() == Qt::Key_Space )
