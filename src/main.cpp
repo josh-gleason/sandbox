@@ -1,7 +1,7 @@
 #include <GL/glew.h>
 
 #include <QApplication>
-#include "GLContext.hpp"
+#include "qt/MainApp.hpp"
 
 #include <iostream>
 #include <IL/il.h>
@@ -14,15 +14,16 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    // initialize devil
     ilInit();
 
     QApplication app(argc, argv);
 
-    GLContext context(argv[1]);
-    context.show();
+    MainApp mainApp(argv[1]);
+    mainApp.show();
 
     // check if initialization succeeded
-    if ( context.good() )
+    if ( mainApp.good() )
         return app.exec();
     else
         return -1;

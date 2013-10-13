@@ -14,7 +14,7 @@ GLTexture::GLTexture() :
 GLTexture::~GLTexture()
 {
     // clean up
-    if ( m_texParameters.use_count() == 1 && m_texParameters == nullptr )
+    if ( m_texParameters.use_count() == 1 && m_texParameters == nullptr && m_texCount != nullptr)
     {
         GLuint *textures = new GLuint[*m_texCount];
         for ( GLsizei i = 0; i < *m_texCount; ++i )

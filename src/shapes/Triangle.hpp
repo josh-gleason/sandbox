@@ -1,12 +1,12 @@
 #ifndef TRIANGLE_HPP
 #define TRIANGLE_HPP
 
-#include "iGLRenderable.hpp"
-#include "GLProgram.hpp"
-#include "GLBuffer.hpp"
-#include "GLVertexArray.hpp"
-#include "GLAttribute.hpp"
-#include "GLUniform.hpp"
+#include "../interfaces/iGLRenderable.hpp"
+#include "../glwrappers/GLProgram.hpp"
+#include "../glwrappers/GLBuffer.hpp"
+#include "../glwrappers/GLVertexArray.hpp"
+#include "../glwrappers/GLAttribute.hpp"
+#include "../glwrappers/GLUniform.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -87,8 +87,14 @@ public:
         m_vao.unbindAll();
     }
 
-    void draw()
+    void setUniforms(GLUniform* [], DrawType )
     {
+        return;
+    }
+
+    void draw(DrawType type)
+    {
+        if ( type != DRAW_MATERIAL ) return;
         // bind the VAO and draw using the indicies in element array buffer
         m_vao.bind();
         glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_BYTE, (void*)(0));
