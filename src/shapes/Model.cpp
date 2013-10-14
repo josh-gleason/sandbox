@@ -166,7 +166,8 @@ void Model::loadMaterials(aiMaterial** materials, unsigned int numMaterials)
         m_materials[i].emissive = glm::vec3(emissive.r, emissive.g, emissive.b);
         m_materials[i].transparent = glm::vec3(transparent.r, transparent.g, transparent.b);
 
-        this->loadMaterialTextures(i, material);
+        m_materials[i].drawType = DRAW_MATERIAL;
+//        this->loadMaterialTextures(i, material);
     }
 }
 
@@ -238,7 +239,7 @@ void Model::loadFaces(aiFace* faces, unsigned int numFaces, GLsizei bufferIdx)
 {
     // guarenteed 3 elements per face
     unsigned int numElements = numFaces * 3;
-
+    
     // using GLuints because meshes may be very large (FYI Ui just means unsigned int)
     GLuint *facesUi = new GLuint[numElements];
 
@@ -248,7 +249,7 @@ void Model::loadFaces(aiFace* faces, unsigned int numFaces, GLsizei bufferIdx)
 
     // load elements into buffer
     m_vertexBuffer.bind(GL_ELEMENT_ARRAY_BUFFER, bufferIdx);
-    m_vertexBuffer.setData<GLuint>(facesUi, numFaces*3, GL_STATIC_DRAW, 0);
+    m_vertexBuffer.setData(facesUi, numFaces*3, GL_STATIC_DRAW, bufferIdx);
     m_vertexBuffer.unbindBuffers(GL_ELEMENT_ARRAY_BUFFER);
     delete [] facesUi;
 }
@@ -275,12 +276,13 @@ void Model::loadTangents(const aiMesh &mesh, GLsizei bufferIdx)
 
     // load vertices into an array buffer
     m_vertexBuffer.bind(GL_ARRAY_BUFFER, bufferIdx);
-    m_vertexBuffer.setData<GLfloat>(vertices, numVertices*6, GL_STATIC_DRAW, 0);
+    m_vertexBuffer.setData<GLfloat>(vertices, numVertices*6, GL_STATIC_DRAW, bufferIdx);
     m_vertexBuffer.unbindBuffers(GL_ARRAY_BUFFER);
     delete [] vertices;
 }
 
-void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPosition, GLAttribute& vNormal, GLAttribute& vTangent, GLAttribute& vBinormal, GLAttribute& vUvCoord)
+void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPosition, GLAttribute& vNormal)
+//void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPosition, GLAttribute& vNormal, GLAttribute& vTangent, GLAttribute& vBinormal, GLAttribute& vUvCoord)
 {
     unsigned int vertexBufferIdx;
     unsigned int uvBufferIdx;
@@ -334,11 +336,11 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPo
             this->loadFaces(mesh.mFaces, mesh.mNumFaces, elementBufferIdx);
             if ( hasTexture )
             {
-                this->loadUvs(mesh, uvBufferIdx);
-                this->loadTangents(mesh, tangentBufferIdx);
-                vUvCoord.enable();
-                vTangent.enable();
-                vBinormal.enable();
+//                this->loadUvs(mesh, uvBufferIdx);
+//                this->loadTangents(mesh, tangentBufferIdx);
+//                vUvCoord.enable();
+//                vTangent.enable();
+//                vBinormal.enable();
             }
 
             // enable the attributes for the VAO
@@ -355,14 +357,14 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPo
             if ( hasTexture )
             {
                 // TODO (is this needed? )
-                m_vertexBuffer.unbindBuffers(GL_ARRAY_BUFFER);
-                m_vertexBuffer.bind(GL_ARRAY_BUFFER, uvBufferIdx);
-                vUvCoord.loadBufferData(2, sizeof(GLfloat)*2);
+//                m_vertexBuffer.unbindBuffers(GL_ARRAY_BUFFER);
+//                m_vertexBuffer.bind(GL_ARRAY_BUFFER, uvBufferIdx);
+//                vUvCoord.loadBufferData(2, sizeof(GLfloat)*2);
 
                 // load tangents and binormals
-                m_vertexBuffer.bind(GL_ARRAY_BUFFER, tangentBufferIdx);
-                vTangent.loadBufferData(3, sizeof(GLfloat)*6);
-                vBinormal.loadBufferData(3, sizeof(GLfloat)*6, sizeof(GLfloat)*3);
+//                m_vertexBuffer.bind(GL_ARRAY_BUFFER, tangentBufferIdx);
+//                vTangent.loadBufferData(3, sizeof(GLfloat)*6);
+//                vBinormal.loadBufferData(3, sizeof(GLfloat)*6, sizeof(GLfloat)*3);
             }
 
             // bind the element array buffer for the VAO
@@ -377,14 +379,14 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPo
     }
 }
 
-bool Model::init(const std::string& filename, GLAttribute& vPosition, GLAttribute& vNormal, GLAttribute& vTangent, GLAttribute &vBinormal, GLAttribute& vUvCoord)
+bool Model::init(const std::string& filename, GLAttribute& vPosition, GLAttribute& vNormal)
+//bool Model::init(const std::string& filename, GLAttribute& vPosition, GLAttribute& vNormal, GLAttribute& vTangent, GLAttribute &vBinormal, GLAttribute& vUvCoord)
 {
     m_modelDir = bf::path(filename).remove_filename();
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile( filename,// aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_GenSmoothNormals );
         aiProcess_GenSmoothNormals         |
-//        aiProcess_GenNormals               |    // gen normals if lacking
         aiProcess_CalcTangentSpace         |
         aiProcess_GenUVCoords              |
         aiProcess_Triangulate              |    // only get triangles
@@ -398,7 +400,8 @@ bool Model::init(const std::string& filename, GLAttribute& vPosition, GLAttribut
     m_minMaxInit = false;
     // copy the materials over
     this->loadMaterials(scene->mMaterials, scene->mNumMaterials);
-    this->loadMeshes(scene->mMeshes, scene->mNumMeshes, vPosition, vNormal, vTangent, vBinormal, vUvCoord);
+    this->loadMeshes(scene->mMeshes, scene->mNumMeshes, vPosition, vNormal);
+    //this->loadMeshes(scene->mMeshes, scene->mNumMeshes, vPosition, vNormal, vTangent, vBinormal, vUvCoord);
 
     // initialize the model matrix
     this->centerScaleModel();
@@ -422,31 +425,15 @@ bool Model::isWire(const std::string& name)
     return false;
 }
 
-void Model::setUniforms(const std::vector<GLUniform> &uniforms, DrawType type)
+void Model::setUniforms(GLBuffer &ubo, UniformType type)
 {
     switch (type)
     {
-        case DrawType::DRAW_MATERIAL:
-        {
-            m_uniforms.uDiffuse   = uniforms[0];
-            m_uniforms.uSpecular  = uniforms[1];
-            m_uniforms.uAmbient   = uniforms[2];
-            m_uniforms.uShininess = uniforms[3];
+        case UniformType::MATERIALS:
+            m_materialUbo = ubo;
             break;
-        }
-        case DrawType::DRAW_TEXTURE_DSB:
-        {
-            m_uniforms.uTexBlend  = uniforms[0];
-            m_uniforms.uDiffuse   = uniforms[1];
-            m_uniforms.uSpecular  = uniforms[2];
-            m_uniforms.uAmbient   = uniforms[3];
-            m_uniforms.uShininess = uniforms[4];
-            break;
-        }
         default:
-        {
             std::cout << "Warning: type not handled" << std::endl;
-        }
     }
 }
 
@@ -458,33 +445,7 @@ void Model::draw(DrawType type)
         {
             for ( size_t i = 0; i < m_meshInfo.size(); ++i )
                 if ( m_materials[m_meshInfo[i].materialIdx].drawType == DRAW_MATERIAL )
-                {
-                    std::cout << "No texture" << std::endl;
                     this->drawCommon(i);
-                }
-            break;
-        }
-        case DrawType::DRAW_TEXTURE_DSB:
-        {
-            for ( size_t i = 0; i < m_meshInfo.size(); ++i )
-            {
-                if ( m_materials[m_meshInfo[i].materialIdx].drawType != DRAW_TEXTURE_DSB )
-                    continue;
-
-                Material &material = m_materials[m_meshInfo[i].materialIdx];
-                for ( size_t i = 0; i < 3U; ++i )
-                {
-                    glActiveTexture(GL_TEXTURE0 + i);
-                    m_uniforms.uTexBlend.loadData(material.texBlend);
-                    m_uniforms.uTexBlend.set();
-                    material.texture[i].setSampling(material.texTarget[i], GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-                    material.texture[i].generateMipMap(material.texTarget[i]);
-                    material.texture[i].bind(material.texTarget[i]);
-                }
-                this->drawCommon(i);
-            }
-            // go back to default texture
-            glActiveTexture(GL_TEXTURE0);
             break;
         }
         default:
@@ -498,16 +459,16 @@ void Model::drawCommon(size_t idx)
 {
     if ( this->isWire(m_materials[m_meshInfo[idx].materialIdx].name) )
         return;
-    
-    m_uniforms.uDiffuse.loadData(m_materials[m_meshInfo[idx].materialIdx].diffuse);
-    m_uniforms.uSpecular.loadData(m_materials[m_meshInfo[idx].materialIdx].specular);
-    m_uniforms.uAmbient.loadData(m_materials[m_meshInfo[idx].materialIdx].ambient);
-    m_uniforms.uShininess.loadData(m_materials[m_meshInfo[idx].materialIdx].shininess);
-    m_uniforms.uDiffuse.set();
-    m_uniforms.uSpecular.set();
-    m_uniforms.uAmbient.set();
-    m_uniforms.uShininess.set();
-    
+  
+    // set the materials UBO
+    m_materialUbo.bind(GL_UNIFORM_BUFFER);
+    m_materialUbo.setSubData(&(m_materials[m_meshInfo[idx].materialIdx].diffuse), MATERIAL_DIFFUSE_OFFSET);
+    m_materialUbo.setSubData(&(m_materials[m_meshInfo[idx].materialIdx].specular), MATERIAL_SPECULAR_OFFSET);
+    m_materialUbo.setSubData(&(m_materials[m_meshInfo[idx].materialIdx].ambient), MATERIAL_AMBIENT_OFFSET);
+    m_materialUbo.setSubData(&(m_materials[m_meshInfo[idx].materialIdx].shininess), MATERIAL_SHININESS_OFFSET);
+   
+    GLBuffer::unbindBuffers(GL_UNIFORM_BUFFER);
+
     m_vao.bind(idx);
     glDrawElements(GL_TRIANGLES, m_meshInfo[idx].numElements, GL_UNSIGNED_INT, (void*)(0));
     m_vao.unbindAll();

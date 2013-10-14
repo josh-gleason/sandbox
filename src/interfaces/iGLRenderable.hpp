@@ -2,7 +2,7 @@
 #define IGLRENDERABLE_HPP
 
 #include <glm/glm.hpp>
-#include "../glwrappers/GLUniform.hpp"
+#include "../glwrappers/GLBuffer.hpp"
 
 const unsigned int TEXTURE_DIFFUSE  = 0x1;
 const unsigned int TEXTURE_SPECULAR = 0x2;
@@ -27,6 +27,15 @@ enum DrawType {
     DRAW_TEXTURE_DSB    = TEXTURE_DIFFUSE | TEXTURE_SPECULAR | TEXTURE_BUMP
 };
 
+enum UniformType {
+    MATERIALS           = 0
+};
+
+const GLintptr MATERIAL_DIFFUSE_OFFSET   = 0;
+const GLintptr MATERIAL_SPECULAR_OFFSET  = sizeof(glm::vec4);
+const GLintptr MATERIAL_AMBIENT_OFFSET   = sizeof(glm::vec4)*2;
+const GLintptr MATERIAL_SHININESS_OFFSET = sizeof(GLfloat)*11;
+
 class iGLRenderable
 {
 public:
@@ -36,7 +45,7 @@ public:
     // This will be called
     virtual const glm::mat4& getModelMatrix() const = 0;
     virtual void draw(DrawType type = DRAW_MATERIAL) = 0;
-    virtual void setUniforms(const std::vector<GLUniform>& uniforms, DrawType type = DRAW_MATERIAL) = 0;
+    virtual void setUniforms(GLBuffer &ubo, UniformType type = MATERIALS) = 0;
 };
 
 #endif // IGLRENDERABLE_HPP

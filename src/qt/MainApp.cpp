@@ -39,6 +39,21 @@ const unsigned char MOVE_DOWN     = 0x20;
 const unsigned char ROTATE_CCW    = 0x40;
 const unsigned char ROTATE_CW     = 0x80;
 
+// uniform block binding points
+const GLuint UB_MATRICES = 1;
+const GLuint UB_LIGHT    = 2;
+const GLuint UB_MATERIAL = 3;
+
+// uniform block offsets based on layout(std140)
+const GLintptr MAT_MVP_OFFSET     = 0;
+const GLintptr MAT_MV_OFFSET      = sizeof(glm::mat4);
+const GLintptr MAT_NORMAL_OFFSET  = sizeof(glm::mat4)*2;
+
+const GLintptr LIGHT_POSITION_OFFSET = 0;
+const GLintptr LIGHT_DIFFUSE_OFFSET  = sizeof(glm::vec4);
+const GLintptr LIGHT_SPECULAR_OFFSET = sizeof(glm::vec4)*2;
+const GLintptr LIGHT_AMBIENT_OFFSET  = sizeof(glm::vec4)*3;
+
 #define CHECKERR err = glGetError(); if ( err != GL_NO_ERROR ) { if ( err == GL_INVALID_OPERATION ) std::cout << "Error: INVALID_OPERATION Line " << __LINE__ << std::endl; else if (err == GL_INVALID_VALUE) std::cout << "Error: INVALID_VALUE Line " << __LINE__ << std::endl; else std::cout << "Error: Line " << __LINE__ << std::endl; }
 
 const float FPS = 60.0f;
@@ -47,6 +62,32 @@ const unsigned int TICK_RATE = 1000 * (1.0/FPS);
 const float FOV_DEG = 45.0f;
 const float FIELD_NEAR = 0.01f;
 const float FIELD_FAR = 100.0f;
+    
+void printUniformOffsets(GLuint program, GLuint uniformBlock)
+{
+    GLchar name[256];
+    GLint uniformCount;
+    glGetActiveUniformBlockiv( program, uniformBlock, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &uniformCount );
+
+    GLint *indices = new GLint[uniformCount];
+    glGetActiveUniformBlockiv( program, uniformBlock, GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, indices );
+
+    for ( GLint i = 0; i < uniformCount; ++i )
+    {
+        const GLuint index = (GLuint)indices[i];
+
+        GLint type, offset;
+
+        glGetActiveUniformName(program, index, 256, 0, name); 
+        glGetActiveUniformsiv(program, 1, &index, GL_UNIFORM_TYPE, &type);
+        glGetActiveUniformsiv(program, 1, &index, GL_UNIFORM_OFFSET, &offset);
+
+        std::cout << " " << name << " (offset) : " << offset << std::endl;
+    }
+    std::cout << std::endl;
+
+    delete [] indices;
+}
 
 MainApp::MainApp(const char* modelPath, QWidget *parent) :
     QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer), parent),
@@ -106,100 +147,83 @@ void MainApp::initializeGL()
 
     // set attribute locations
     if ( !m_glProgramMaterial.bindAttributeLocation("v_normal",V_NORMAL) )
-        return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
+        std::cout << "Warning: " << m_glProgramMaterial.getLastError().c_str();
     if ( !m_glProgramMaterial.bindAttributeLocation("v_position",V_POSITION) )
-        return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
+        std::cout << "Warning: " << m_glProgramMaterial.getLastError().c_str();
     
     // link program
     if ( !m_glProgramMaterial.link() )
         return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
 
-    // get the uniform locations
-    m_uMatrixMvp_M.init(m_glProgramMaterial, "u_mvpMatrix", MAT4F); 
-    m_uMatrixMv_M.init(m_glProgramMaterial, "u_mvMatrix", MAT4F); 
-    m_uMatrixNormal_M.init(m_glProgramMaterial, "u_normalMatrix", MAT4F); 
-    m_uLightPos_M.init(m_glProgramMaterial, "u_lightPos", VEC3F); 
-    m_uLightDiffuse_M.init(m_glProgramMaterial, "u_lightDiffuse", VEC3F); 
-    m_uLightSpecular_M.init(m_glProgramMaterial, "u_lightSpecular", VEC3F); 
-    m_uLightAmbient_M.init(m_glProgramMaterial, "u_lightAmbient", VEC3F); 
-    m_uSpecular_M.init(m_glProgramMaterial, "u_specular", VEC3F);
-    m_uDiffuse_M.init(m_glProgramMaterial, "u_diffuse", VEC3F);
-    m_uAmbient_M.init(m_glProgramMaterial, "u_ambient", VEC3F);
-    m_uShininess_M.init(m_glProgramMaterial, "u_shininess", FLOAT);
+    // get the uniform locations TODO make this in a class
+    GLuint uMatrices = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Matrices");
+    if ( uMatrices == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
+    else
+    {
+        std::cout << "Matrices Block offsets :: " << std::endl;
+        std::cout << " mvpMatrix : " << MAT_MVP_OFFSET << std::endl
+                  << " mvMatrix  : " << MAT_MV_OFFSET << std::endl
+                  << " normalMatrix : " << MAT_NORMAL_OFFSET << std::endl << std::endl;
+        printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uMatrices);
+    }
 
-////////////////////////////////////////////// TEXTURE PROGRAM
+    GLuint uLight = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Light");
+    if ( uLight == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Light" << std::endl;
+    else
+    {
+        std::cout << "Light Block offsets :: " << std::endl;
+        std::cout << " position : " << LIGHT_POSITION_OFFSET << std::endl
+                  << " diffuse  : " << LIGHT_DIFFUSE_OFFSET << std::endl
+                  << " specular : " << LIGHT_SPECULAR_OFFSET << std::endl
+                  << " ambient  : " << LIGHT_AMBIENT_OFFSET << std::endl;
+        printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uLight);
+    }
 
-    GLShader vshaderTexture;
-    GLShader fshaderTexture;
-    if ( !vshaderTexture.compileFromFile("./shaders/vshaderTexDSB.glsl", GL_VERTEX_SHADER) )
-        return reportError(QString::fromUtf8(vshaderTexture.getLastError().c_str()));
-    if ( !fshaderTexture.compileFromFile("./shaders/fshaderTexDSB.glsl", GL_FRAGMENT_SHADER) )
-        return reportError(QString::fromUtf8(fshaderTexture.getLastError().c_str()));
-    
-    // initialize material program
-    m_glProgramTexture.init(); 
+    GLuint uMaterial = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Material");
+    if ( uMaterial == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Material" << std::endl;
+    else
+    {
+        std::cout << "Material Block offsets :: " << std::endl;
+        std::cout << " diffuse  : " << MATERIAL_DIFFUSE_OFFSET << std::endl
+                  << " specular : " << MATERIAL_SPECULAR_OFFSET << std::endl
+                  << " ambient  : " << MATERIAL_AMBIENT_OFFSET << std::endl
+                  << " shininess: " << MATERIAL_SHININESS_OFFSET << std::endl;
+        printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uMaterial);
+    }
+
+    // bind uniform blocks to indices TODO make this in a class
+    glUniformBlockBinding(m_glProgramMaterial.getProgramIdx(), uMatrices, UB_MATRICES);
+    glUniformBlockBinding(m_glProgramMaterial.getProgramIdx(), uLight, UB_LIGHT);
+    glUniformBlockBinding(m_glProgramMaterial.getProgramIdx(), uMaterial, UB_MATERIAL);
+
+    m_glUniformMatrixBuffer.generate(1);
+    m_glUniformLightBuffer.generate(1);
+    m_glUniformMaterialBuffer.generate(1);
+
+    m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
+    m_glUniformMatrixBuffer.setEmpty(sizeof(GLfloat)*16*3, GL_DYNAMIC_DRAW);
+    m_glUniformLightBuffer.bind(GL_UNIFORM_BUFFER);
+    m_glUniformLightBuffer.setEmpty(sizeof(GLfloat)*16, GL_DYNAMIC_DRAW);
+    m_glUniformMaterialBuffer.bind(GL_UNIFORM_BUFFER);
+    m_glUniformMaterialBuffer.setEmpty(sizeof(GLfloat)*13, GL_DYNAMIC_DRAW);
+
+    m_glUniformMatrixBuffer.bindBase(UB_MATRICES);
+    m_glUniformLightBuffer.bindBase(UB_LIGHT);
+    m_glUniformMaterialBuffer.bindBase(UB_MATERIAL);
    
-    // attach shaders
-    if ( !m_glProgramTexture.attachShader(vshaderTexture) )
-        return reportError(QString::fromUtf8(m_glProgramTexture.getLastError().c_str()));
-    if ( !m_glProgramTexture.attachShader(fshaderTexture) )
-        return reportError(QString::fromUtf8(m_glProgramTexture.getLastError().c_str()));
-
-    // set attribute locations
-    if ( !m_glProgramTexture.bindAttributeLocation("v_normal",V_NORMAL) )
-        return reportError(QString::fromUtf8(m_glProgramTexture.getLastError().c_str()));
-    if ( !m_glProgramTexture.bindAttributeLocation("v_position",V_POSITION) )
-        return reportError(QString::fromUtf8(m_glProgramTexture.getLastError().c_str()));
-    if ( !m_glProgramTexture.bindAttributeLocation("v_uvCoord",V_UVCOORD) )
-        return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
-    if ( !m_glProgramTexture.bindAttributeLocation("v_tangent",V_TANGENT) )
-        return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
-    if ( !m_glProgramTexture.bindAttributeLocation("v_binormal",V_BINORMAL) )
-        return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
-    
-    // link program
-    if ( !m_glProgramTexture.link() )
-        return reportError(QString::fromUtf8(m_glProgramTexture.getLastError().c_str()));
-
-    // get the uniform locations
-    m_uMatrixMvp_T.init(m_glProgramTexture, "u_mvpMatrix", MAT4F); 
-    m_uMatrixMv_T.init(m_glProgramTexture, "u_mvMatrix", MAT4F); 
-    m_uMatrixNormal_T.init(m_glProgramTexture, "u_normalMatrix", MAT4F); 
-    m_uLightPos_T.init(m_glProgramTexture, "u_lightPos", VEC3F); 
-    m_uLightDiffuse_T.init(m_glProgramTexture, "u_lightDiffuse", VEC3F); 
-    m_uLightSpecular_T.init(m_glProgramTexture, "u_lightSpecular", VEC3F); 
-    m_uLightAmbient_T.init(m_glProgramTexture, "u_lightAmbient", VEC3F); 
-    m_uSpecular_T.init(m_glProgramTexture, "u_specular", VEC3F);
-    m_uDiffuse_T.init(m_glProgramTexture, "u_diffuse", VEC3F);
-    m_uAmbient_T.init(m_glProgramTexture, "u_ambient", VEC3F);
-    m_uShininess_T.init(m_glProgramTexture, "u_shininess", FLOAT);
-    m_uTexBlend_T.init(m_glProgramTexture, "u_texBlend", FLOAT);
-   
-    // set which textures correspond to which samplers
-    GLUniform uDiffuseMap, uSpecularMap, uBumpMap;
-    uDiffuseMap.init(m_glProgramTexture, "u_diffuseMap", INT);// VEC3F);
-    uDiffuseMap.loadData(TEXTURE_DIFFUSE);
-    uDiffuseMap.set();
-    uSpecularMap.init(m_glProgramTexture, "u_specularMap", INT);// VEC3F);
-    uSpecularMap.loadData(TEXTURE_SPECULAR);
-    uSpecularMap.set();
-    uBumpMap.init(m_glProgramTexture, "u_bumpMap", INT); //VEC3F);
-    uBumpMap.loadData(TEXTURE_BUMP);
-    uBumpMap.set();
-
-///////////////////////////////////////////////
+    GLBuffer::unbindBuffers(GL_UNIFORM_BUFFER);
 
     // TODO this init is unneccessary fix structure
     GLAttribute vPosition, vNormal, vUvCoord, vTangent, vBinormal;
     vPosition.init(m_glProgramMaterial, "v_position");
     vNormal.init(m_glProgramMaterial, "v_normal");
-    vUvCoord.init(m_glProgramTexture, "v_uvCoord");
-    vTangent.init(m_glProgramTexture, "v_tangent");
-    vBinormal.init(m_glProgramTexture, "v_binormal");
 
     // initialize triangles
     Model* model = new Model;
-    if ( !model->init(m_modelPath, vPosition, vNormal, vTangent, vBinormal, vUvCoord) )
+    if ( !model->init(m_modelPath, vPosition, vNormal) )
         return reportError("Unable to load model");
 
     // add model to render list
@@ -218,20 +242,18 @@ void MainApp::paintGL()
     
     // compute the view-projection matrix (the model matrix is multiplied by this for each shape)
     const glm::mat4 &viewMatrix = m_camera.getViewMatrix();
+   
+    // set lighting
+    glm::vec3 lightPos((viewMatrix*glm::vec4(4.0f, 4.0f, 4.0f, 1.0f)).xyz());
+    glm::vec3 lightDiffuse(0.5f, 0.7f, 0.3f);
+    glm::vec3 lightSpecular(0.8f, 0.6f, 0.3f);
+    glm::vec3 lightAmbient(0.4f, 0.4f, 0.4f);
 
-    std::vector<GLUniform> materialUniforms(4);
-    std::vector<GLUniform> textureUniforms(5);
-
-    materialUniforms[0] = m_uDiffuse_M;
-    materialUniforms[1] = m_uSpecular_M;
-    materialUniforms[2] = m_uAmbient_M;
-    materialUniforms[3] = m_uShininess_M;
-
-    textureUniforms[0] = m_uTexBlend_T;
-    textureUniforms[1] = m_uDiffuse_T;
-    textureUniforms[2] = m_uSpecular_T;
-    textureUniforms[3] = m_uAmbient_T;
-    textureUniforms[4] = m_uShininess_T;
+    m_glUniformLightBuffer.bind(GL_UNIFORM_BUFFER);
+    m_glUniformLightBuffer.setSubData(&lightPos, LIGHT_POSITION_OFFSET);
+    m_glUniformLightBuffer.setSubData(&lightDiffuse, LIGHT_DIFFUSE_OFFSET);
+    m_glUniformLightBuffer.setSubData(&lightSpecular, LIGHT_SPECULAR_OFFSET);
+    m_glUniformLightBuffer.setSubData(&lightAmbient, LIGHT_AMBIENT_OFFSET);
 
     // Render non-textured targets
     m_glProgramMaterial.use();
@@ -240,51 +262,19 @@ void MainApp::paintGL()
         // set model uniforms
         const glm::mat4 &modelMatrix = (*i)->getModelMatrix();
         const glm::mat4 modelViewMatrix = viewMatrix * modelMatrix;
+        const glm::mat4 mvpMatrix = m_projectionMatrix * modelViewMatrix;
+        const glm::mat4 normalMatrix = glm::transpose(glm::inverse(modelViewMatrix));
 
-        m_uMatrixMvp_M.loadData(m_projectionMatrix * modelViewMatrix);
-        m_uMatrixMv_M.loadData(modelViewMatrix);
-        m_uMatrixNormal_M.loadData(glm::transpose(glm::inverse(modelViewMatrix)));
-        m_uLightPos_M.loadData((viewMatrix*glm::vec4(4.0f, 4.0f, 4.0f, 1.0f)).xyz());
-        m_uLightSpecular_M.loadData(glm::vec3(0.5f, 0.7f, 0.3f));
-        m_uLightDiffuse_M.loadData(glm::vec3(0.8f, 0.6f, 0.3f));
-        m_uLightAmbient_M.loadData(glm::vec3(0.4f, 0.4f, 0.4f));
-        m_uMatrixMvp_M.set();
-        m_uMatrixMv_M.set();
-        m_uMatrixNormal_M.set();
-        m_uLightSpecular_M.set();
-        m_uLightDiffuse_M.set();
-        m_uLightAmbient_M.set();
+        m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
+        m_glUniformMatrixBuffer.setSubData(&mvpMatrix, MAT_MVP_OFFSET); 
+        m_glUniformMatrixBuffer.setSubData(&modelViewMatrix, MAT_MV_OFFSET); 
+        m_glUniformMatrixBuffer.setSubData(&normalMatrix, MAT_NORMAL_OFFSET); 
 
-        (*i)->setUniforms(materialUniforms, DRAW_MATERIAL);
+        (*i)->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
         (*i)->draw(DRAW_MATERIAL);
     }
-   
-    // Render textured targets
-    m_glProgramTexture.use();
-    for ( RenderList::iterator i = m_renderTargets.begin(); i != m_renderTargets.end(); ++i )
-    {
-        // set model uniforms
-        const glm::mat4 &modelMatrix = (*i)->getModelMatrix();
-        const glm::mat4 modelViewMatrix = viewMatrix * modelMatrix;
 
-        m_uMatrixMvp_T.loadData(m_projectionMatrix * modelViewMatrix);
-        m_uMatrixMv_T.loadData(modelViewMatrix);
-        m_uMatrixNormal_T.loadData(glm::transpose(glm::inverse(modelViewMatrix)));
-        m_uLightPos_T.loadData(glm::vec3(1.0f, 3.0f, 4.0f));
-        m_uLightSpecular_T.loadData(glm::vec3(1.0f, 1.0f, 1.0f));
-        m_uLightDiffuse_T.loadData(glm::vec3(1.0f, 1.0f, 1.0f));
-        m_uLightAmbient_T.loadData(glm::vec3(0.2f, 0.2f, 0.2f));
-        m_uMatrixMvp_T.set();
-        m_uMatrixMv_T.set();
-        m_uMatrixNormal_T.set();
-        m_uLightSpecular_T.set();
-        m_uLightDiffuse_T.set();
-        m_uLightAmbient_T.set();
-
-        (*i)->setUniforms(textureUniforms, DRAW_TEXTURE_DSB);
-        (*i)->draw(DRAW_TEXTURE_DSB);
-    }
-    m_glProgramTexture.resetUsed();
+    GLProgram::resetUsed();
 }
 
 void MainApp::keyPressEvent(QKeyEvent *event)

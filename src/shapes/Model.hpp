@@ -37,44 +37,33 @@ struct MeshInfo
     size_t materialIdx;     // which material to use
 };
 
-struct Uniforms
-{
-    GLUniform uDiffuse;
-    GLUniform uSpecular;
-    GLUniform uAmbient;
-    GLUniform uShininess;
-    GLUniform uTexBlend;
-};
-
 class Model : public iGLRenderable
 {
 public:
     Model();
     ~Model();
 
-    bool init(const std::string& filename, GLAttribute& vPosition, GLAttribute& vNormal, GLAttribute &vTangent, GLAttribute &vBinormal, GLAttribute &vUvCoord);
+    bool init(const std::string& filename, GLAttribute& vPosition, GLAttribute& vNormal);
     void centerScaleModel();
     
     // inherited virtual functions
     const glm::mat4& getModelMatrix() const;
     void draw(DrawType type);
-    //void setUniforms(GLUniform *uniforms[], DrawType type);
-    void setUniforms(const std::vector<GLUniform>& uniforms, DrawType type = DRAW_MATERIAL);
-    void drawTextured();
+    void setUniforms(GLBuffer& ubo, UniformType type = MATERIALS);
 protected:
     void drawCommon(size_t idx);
 
     static bool isWire(const std::string& name);
     void loadMaterialTextures(int materialIdx, const aiMaterial& material);
     void loadMaterials(aiMaterial** materials, unsigned int numMaterials);
-    void loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPosition, GLAttribute& vNormal, GLAttribute& vTangent, GLAttribute& vBinormal, GLAttribute& vUvCoord);
+    void loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPosition, GLAttribute& vNormal);
     void loadTangents(const aiMesh& mesh, GLsizei bufferIdx);
     void loadVertices(const aiMesh& mesh, GLsizei bufferIdx);
     void loadFaces(aiFace* faces, unsigned int numFaces, GLsizei bufferIdx);
     void loadUvs(aiMesh &mesh, GLsizei bufferIdx);
 
     GLBuffer              m_vertexBuffer;
-    Uniforms              m_uniforms;
+    GLBuffer              m_materialUbo;
 
     // one vao per mesh (m_meshInfo.size() == number of meshes)
     GLVertexArray         m_vao;

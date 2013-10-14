@@ -34,14 +34,33 @@ public:
     //   GL_TRANSFORM_FEEDBACK_BUFFER
     //   GL_UNIFORM_BUFFER
     void bind(GLenum target, GLsizei idx = 0);
-  
+ 
+    // must be called after bind in order to get correct target
+    void bindBase(GLuint index, GLsizei idx = 0);
+
+    // size in bytes
+    bool setEmpty(GLsizeiptr size, GLenum usage = GL_STATIC_DRAW, GLsizei idx = 0);
+
+    template <typename T>
+    bool setSubData(const T* data, GLintptr offset = 0, GLsizei size = 1, GLsizei idx = 0)
+    {
+        if ( m_buffers != nullptr && m_bufferCount > idx && m_dataSet[idx] )
+        {
+            glBufferSubData(m_targets[idx], offset, sizeof(T)*size, reinterpret_cast<const void*>(data)); 
+            return true;
+        }
+        return false;
+    }
+
     // set the data
     template <typename T>
     bool setData(const T* data, GLsizei size = 1, GLenum usage = GL_STATIC_DRAW, GLsizei idx = 0)
     {
-        if ( m_buffers != nullptr && m_bufferCount > idx && m_target != GL_NONE )
+        if ( m_buffers != nullptr && m_bufferCount > idx && m_targets[idx] != GL_NONE )
         {
-            glBufferData(m_target, sizeof(T)*size, reinterpret_cast<const void*>(data), usage);
+            glBufferData(m_targets[idx], sizeof(T)*size, reinterpret_cast<const void*>(data), usage);
+            m_dataSet[idx] = true;
+            return true;
         }
 
         // not initialized or not bound
@@ -51,9 +70,17 @@ public:
     // unbind buffers
     // target: One of the GLenum buffers (see GLBuffer::bind)
     static void unbindBuffers(GLenum target);
+
+    GLuint getBufferIdx(GLsizei idx = 0)
+    {
+        if ( m_buffers != nullptr && m_bufferCount > idx )
+            return m_buffers[idx];
+        else return 0;
+    }
 protected:
     boost::shared_array<GLuint> m_buffers;
-    GLenum                      m_target;
+    boost::shared_array<GLenum> m_targets;
+    boost::shared_array<bool>   m_dataSet;
     GLsizei m_bufferCount;
 };
 

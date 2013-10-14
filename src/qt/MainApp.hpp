@@ -44,36 +44,11 @@ protected:
     bool                   m_good;
 
     GLProgram              m_glProgramMaterial;
-    GLProgram              m_glProgramTexture;
     GLBuffer               m_glVertexPosBuffer;
     GLBuffer               m_glVertexIdxBuffer;
-   
-    // TODO use uniform buffer objects to share uniforms between programs
-    GLUniform              m_uMatrixMvp_M;
-    GLUniform              m_uMatrixMv_M;
-    GLUniform              m_uMatrixNormal_M;
-    GLUniform              m_uDiffuse_M;
-    GLUniform              m_uSpecular_M;
-    GLUniform              m_uAmbient_M;
-    GLUniform              m_uShininess_M;
-    GLUniform              m_uLightPos_M;
-    GLUniform              m_uLightDiffuse_M;
-    GLUniform              m_uLightSpecular_M;
-    GLUniform              m_uLightAmbient_M;
-   
-    // texture program uniforms
-    GLUniform              m_uMatrixMvp_T;
-    GLUniform              m_uMatrixMv_T;
-    GLUniform              m_uMatrixNormal_T;
-    GLUniform              m_uDiffuse_T;
-    GLUniform              m_uSpecular_T;
-    GLUniform              m_uAmbient_T;
-    GLUniform              m_uShininess_T;
-    GLUniform              m_uLightPos_T;
-    GLUniform              m_uLightDiffuse_T;
-    GLUniform              m_uLightSpecular_T;
-    GLUniform              m_uLightAmbient_T;
-    GLUniform              m_uTexBlend_T;
+    GLBuffer               m_glUniformMatrixBuffer;
+    GLBuffer               m_glUniformLightBuffer;
+    GLBuffer               m_glUniformMaterialBuffer;
 
     glm::mat4              m_projectionMatrix;
     Camera                 m_camera;    // stores/manipulates view matrix
