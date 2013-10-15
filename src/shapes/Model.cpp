@@ -7,6 +7,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
+#include <cstring>
+
 #define CHECKERR err = glGetError(); if ( err != GL_NO_ERROR ) { if ( err == GL_INVALID_OPERATION ) std::cout << "Error: INVALID_OPERATION Line " << __LINE__ << std::endl; else if (err == GL_INVALID_VALUE) std::cout << "Error: INVALID_VALUE Line " << __LINE__ << std::endl; else std::cout << "Error: Line " << __LINE__ << std::endl; }
 
 // same order as TEXTURE_TYPES defined in iGLRenderable
@@ -56,7 +58,7 @@ void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
             static_cast<DrawType>(static_cast<unsigned int>(m_materials[materialIdx].drawType) | TEXTURE_DIFFUSE);
 
         // activate texture 0 for the diffuse texture
-        glActiveTexture(GL_TEXTURE0);
+//        glActiveTexture(GL_TEXTURE0);
 
         // create local path to texture
         bf::path texPath = m_modelDir / texImg.C_Str();
@@ -103,7 +105,7 @@ void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
     std::cout << "FINAL TEXTURE TYPE : " << m_materials[materialIdx].drawType << std::endl;
 
     // reset active texture to default
-    glActiveTexture(GL_TEXTURE0);
+//    glActiveTexture(GL_TEXTURE0);
 }
 
 void Model::loadMaterials(aiMaterial** materials, unsigned int numMaterials)
@@ -163,12 +165,28 @@ void Model::loadVertices(const aiMesh& mesh, GLsizei bufferIdx, bool firstQuery)
     // copy positions and normals into single, interleaved array
     for ( unsigned int i = 0; i < numVertices*6; i+=6 )
     {
-        vertices[i]   = positions[i/6].x;
-        vertices[i+1] = positions[i/6].y;
-        vertices[i+2] = positions[i/6].z;
-        vertices[i+3] = normals[i/6].x;
-        vertices[i+4] = normals[i/6].y;
-        vertices[i+5] = normals[i/6].z;
+        if ( positions != nullptr )
+        {
+            vertices[i]   = positions[i/6].x;
+            vertices[i+1] = positions[i/6].y;
+            vertices[i+2] = positions[i/6].z;
+        }
+        else
+        {
+            vertices[i] = vertices[i+1] = vertices[i+2] = 0.0;
+        }
+
+        if ( normals != nullptr )
+        {
+            vertices[i+3] = normals[i/6].x;
+            vertices[i+4] = normals[i/6].y;
+            vertices[i+5] = normals[i/6].z;
+        }
+        else
+        {
+            vertices[i+3] = vertices[i+4] = 0.0;
+            vertices[i+5] = 1.0;
+        }
 
         // while loading, determine bounding box
         m_minVertex = glm::vec3(
@@ -353,7 +371,10 @@ bool Model::init(const std::string& filename)
     // load the scene
     Assimp::Importer importer;
     const aiScene* scene =
-        importer.ReadFile( filename, aiProcessPreset_TargetRealtime_MaxQuality );
+        importer.ReadFile( filename,
+                aiProcessPreset_TargetRealtime_MaxQuality
+                | aiProcess_FlipUVs     // really only do this for obj files
+        );
 
     if (!scene)
         return false;
@@ -424,8 +445,8 @@ void Model::draw(DrawType type)
                 material.texture.setSampling(material.texTarget,
                         GL_LINEAR_MIPMAP_LINEAR,
                         GL_LINEAR,
-                        GL_CLAMP_TO_EDGE,
-                        GL_CLAMP_TO_EDGE);
+                        GL_WRAP_BORDER,
+                        GL_WRAP_BORDER);
                 material.texture.bind(material.texTarget);
                 
                 this->drawCommon(i);
@@ -444,6 +465,16 @@ void Model::drawCommon(size_t idx)
     // don't draw wires/bones in models
     if ( this->isWire(m_materials[m_meshInfo[idx].materialIdx].name) )
         return;
+
+    std::string name = m_materials[m_meshInfo[idx].materialIdx].name;
+    if ( name == "NudeEL_Nude__Elexis_reference_s0" )
+        return;
+    if ( name == "NudeEL_Nude__Elexis_reference_s" )
+        return;
+    else
+        std::cout << m_materials[m_meshInfo[idx].materialIdx].name << std::endl;
+    
+    std::cout << "Size : " << name.size() << std::endl;
 
     // set the materials UBO
     m_materialUbo.bind(GL_UNIFORM_BUFFER);
