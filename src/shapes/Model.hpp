@@ -16,19 +16,21 @@ namespace bf = boost::filesystem;
 
 struct Material
 {
+    // material info
     std::string name;
     glm::vec3 specular;
     glm::vec3 diffuse;
     glm::vec3 ambient;
     glm::vec3 emissive;
     glm::vec3 transparent;
-    float shininess;
-    float texBlend;
+    float     shininess;
+    float     texBlend;
 
-    DrawType               drawType;
-    std::vector<GLTexture> texture;
-    std::vector<GLenum>    texTarget;
-    bool useTexture;
+    // texture info
+    DrawType    drawType;
+    GLTexture   texture;
+    GLenum      texTarget;
+    bool        useTexture;
 };
 
 struct MeshInfo
@@ -43,7 +45,7 @@ public:
     Model();
     ~Model();
 
-    bool init(const std::string& filename, GLAttribute& vPosition, GLAttribute& vNormal);
+    bool init(const std::string& filename);
     void centerScaleModel();
     
     // inherited virtual functions
@@ -56,14 +58,17 @@ protected:
     static bool isWire(const std::string& name);
     void loadMaterialTextures(int materialIdx, const aiMaterial& material);
     void loadMaterials(aiMaterial** materials, unsigned int numMaterials);
-    void loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPosition, GLAttribute& vNormal);
+    void loadMeshes(aiMesh** meshes, unsigned int numMeshes);
     void loadTangents(const aiMesh& mesh, GLsizei bufferIdx);
-    void loadVertices(const aiMesh& mesh, GLsizei bufferIdx);
+    void loadVertices(const aiMesh& mesh, GLsizei bufferIdx, bool firstQuery);
     void loadFaces(aiFace* faces, unsigned int numFaces, GLsizei bufferIdx);
     void loadUvs(aiMesh &mesh, GLsizei bufferIdx);
 
+    // vertex buffer kept around so that buffers aren't deallocated
     GLBuffer              m_vertexBuffer;
+
     GLBuffer              m_materialUbo;
+    GLBuffer              m_texBlendUbo;
 
     // one vao per mesh (m_meshInfo.size() == number of meshes)
     GLVertexArray         m_vao;

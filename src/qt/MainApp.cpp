@@ -24,12 +24,6 @@
 // c++ libraries
 #include <iostream>
 
-const GLuint V_POSITION = 0;
-const GLuint V_NORMAL   = 1;
-const GLuint V_UVCOORD  = 2;
-const GLuint V_TANGENT  = 3;
-const GLuint V_BINORMAL = 4;
-
 const unsigned char MOVE_FORWARD  = 0x01;
 const unsigned char MOVE_BACKWARD = 0x02;
 const unsigned char MOVE_LEFT     = 0x04;
@@ -38,21 +32,6 @@ const unsigned char MOVE_UP       = 0x10;
 const unsigned char MOVE_DOWN     = 0x20;
 const unsigned char ROTATE_CCW    = 0x40;
 const unsigned char ROTATE_CW     = 0x80;
-
-// uniform block binding points
-const GLuint UB_MATRICES = 1;
-const GLuint UB_LIGHT    = 2;
-const GLuint UB_MATERIAL = 3;
-
-// uniform block offsets based on layout(std140)
-const GLintptr MAT_MVP_OFFSET     = 0;
-const GLintptr MAT_MV_OFFSET      = sizeof(glm::mat4);
-const GLintptr MAT_NORMAL_OFFSET  = sizeof(glm::mat4)*2;
-
-const GLintptr LIGHT_POSITION_OFFSET = 0;
-const GLintptr LIGHT_DIFFUSE_OFFSET  = sizeof(glm::vec4);
-const GLintptr LIGHT_SPECULAR_OFFSET = sizeof(glm::vec4)*2;
-const GLintptr LIGHT_AMBIENT_OFFSET  = sizeof(glm::vec4)*3;
 
 #define CHECKERR err = glGetError(); if ( err != GL_NO_ERROR ) { if ( err == GL_INVALID_OPERATION ) std::cout << "Error: INVALID_OPERATION Line " << __LINE__ << std::endl; else if (err == GL_INVALID_VALUE) std::cout << "Error: INVALID_VALUE Line " << __LINE__ << std::endl; else std::cout << "Error: Line " << __LINE__ << std::endl; }
 
@@ -131,29 +110,41 @@ void MainApp::initializeGL()
     // initilize shaders
     GLShader vshaderMaterial;
     GLShader fshaderMaterial;
+    GLShader vshaderTexD;
+    GLShader fshaderTexD;
     if ( !vshaderMaterial.compileFromFile("./shaders/vshader.glsl", GL_VERTEX_SHADER) )
         return reportError(QString::fromUtf8(vshaderMaterial.getLastError().c_str()));
     if ( !fshaderMaterial.compileFromFile("./shaders/fshader.glsl", GL_FRAGMENT_SHADER) )
         return reportError(QString::fromUtf8(fshaderMaterial.getLastError().c_str()));
+    if ( !vshaderTexD.compileFromFile("./shaders/vshaderTexD.glsl", GL_VERTEX_SHADER) )
+        return reportError(QString::fromUtf8(vshaderTexD.getLastError().c_str()));
+    if ( !fshaderTexD.compileFromFile("./shaders/fshaderTexD.glsl", GL_FRAGMENT_SHADER) )
+        return reportError(QString::fromUtf8(fshaderTexD.getLastError().c_str()));
     
     // initialize material program
     m_glProgramMaterial.init(); 
+    m_glProgramTexD.init();
    
     // attach shaders
     if ( !m_glProgramMaterial.attachShader(vshaderMaterial) )
         return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
     if ( !m_glProgramMaterial.attachShader(fshaderMaterial) )
         return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
+    if ( !m_glProgramTexD.attachShader(vshaderTexD) )
+        return reportError(QString::fromUtf8(m_glProgramTexD.getLastError().c_str()));
+    if ( !m_glProgramTexD.attachShader(fshaderTexD) )
+        return reportError(QString::fromUtf8(m_glProgramTexD.getLastError().c_str()));
 
-    // set attribute locations
-    if ( !m_glProgramMaterial.bindAttributeLocation("v_normal",V_NORMAL) )
-        std::cout << "Warning: " << m_glProgramMaterial.getLastError().c_str();
-    if ( !m_glProgramMaterial.bindAttributeLocation("v_position",V_POSITION) )
-        std::cout << "Warning: " << m_glProgramMaterial.getLastError().c_str();
-    
     // link program
     if ( !m_glProgramMaterial.link() )
         return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
+    if ( !m_glProgramTexD.link() )
+        return reportError(QString::fromUtf8(m_glProgramTexD.getLastError().c_str()));
+
+    GLUniform diffuseMap;
+    diffuseMap.init(m_glProgramTexD, "u_diffuseMap", INT);
+    diffuseMap.loadData(0);
+    diffuseMap.set();
 
     // get the uniform locations TODO make this in a class
     GLuint uMatrices = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Matrices");
@@ -164,7 +155,7 @@ void MainApp::initializeGL()
         std::cout << "Matrices Block offsets :: " << std::endl;
         std::cout << " mvpMatrix : " << MAT_MVP_OFFSET << std::endl
                   << " mvMatrix  : " << MAT_MV_OFFSET << std::endl
-                  << " normalMatrix : " << MAT_NORMAL_OFFSET << std::endl << std::endl;
+                  << " normalMatrix : " << MAT_NORMAL_OFFSET << std::endl;
         printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uMatrices);
     }
 
@@ -190,7 +181,8 @@ void MainApp::initializeGL()
         std::cout << " diffuse  : " << MATERIAL_DIFFUSE_OFFSET << std::endl
                   << " specular : " << MATERIAL_SPECULAR_OFFSET << std::endl
                   << " ambient  : " << MATERIAL_AMBIENT_OFFSET << std::endl
-                  << " shininess: " << MATERIAL_SHININESS_OFFSET << std::endl;
+                  << " shininess: " << MATERIAL_SHININESS_OFFSET << std::endl
+                  << " texBlend : " << MATERIAL_TEXBLEND_OFFSET << std::endl;
         printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uMaterial);
     }
 
@@ -198,6 +190,21 @@ void MainApp::initializeGL()
     glUniformBlockBinding(m_glProgramMaterial.getProgramIdx(), uMatrices, UB_MATRICES);
     glUniformBlockBinding(m_glProgramMaterial.getProgramIdx(), uLight, UB_LIGHT);
     glUniformBlockBinding(m_glProgramMaterial.getProgramIdx(), uMaterial, UB_MATERIAL);
+    
+    // same for other program
+    uMatrices = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Matrices");
+    if ( uMatrices == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
+    uLight = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Light");
+    if ( uLight == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Light" << std::endl;
+    uMaterial = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Material");
+    if ( uMaterial == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Material" << std::endl;
+    
+    glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uMatrices, UB_MATRICES);
+    glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uLight, UB_LIGHT);
+    glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uMaterial, UB_MATERIAL);
 
     m_glUniformMatrixBuffer.generate(1);
     m_glUniformLightBuffer.generate(1);
@@ -208,7 +215,7 @@ void MainApp::initializeGL()
     m_glUniformLightBuffer.bind(GL_UNIFORM_BUFFER);
     m_glUniformLightBuffer.setEmpty(sizeof(GLfloat)*16, GL_DYNAMIC_DRAW);
     m_glUniformMaterialBuffer.bind(GL_UNIFORM_BUFFER);
-    m_glUniformMaterialBuffer.setEmpty(sizeof(GLfloat)*13, GL_DYNAMIC_DRAW);
+    m_glUniformMaterialBuffer.setEmpty(sizeof(GLfloat)*14, GL_DYNAMIC_DRAW);
 
     m_glUniformMatrixBuffer.bindBase(UB_MATRICES);
     m_glUniformLightBuffer.bindBase(UB_LIGHT);
@@ -216,15 +223,13 @@ void MainApp::initializeGL()
    
     GLBuffer::unbindBuffers(GL_UNIFORM_BUFFER);
 
-    // TODO this init is unneccessary fix structure
-    GLAttribute vPosition, vNormal, vUvCoord, vTangent, vBinormal;
-    vPosition.init(m_glProgramMaterial, "v_position");
-    vNormal.init(m_glProgramMaterial, "v_normal");
-
     // initialize triangles
     Model* model = new Model;
-    if ( !model->init(m_modelPath, vPosition, vNormal) )
+    if ( !model->init(m_modelPath) )
         return reportError("Unable to load model");
+
+    // give the model access to material uniform buffer
+    model->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
 
     // add model to render list
     m_renderTargets.push_back(std::shared_ptr<iGLRenderable>(model));
@@ -244,10 +249,10 @@ void MainApp::paintGL()
     const glm::mat4 &viewMatrix = m_camera.getViewMatrix();
    
     // set lighting
-    glm::vec3 lightPos((viewMatrix*glm::vec4(4.0f, 4.0f, 4.0f, 1.0f)).xyz());
-    glm::vec3 lightDiffuse(0.5f, 0.7f, 0.3f);
-    glm::vec3 lightSpecular(0.8f, 0.6f, 0.3f);
-    glm::vec3 lightAmbient(0.4f, 0.4f, 0.4f);
+    glm::vec3 lightPos((viewMatrix*glm::vec4(0.0f, -4.0f, 0.0f, 1.0f)).xyz());
+    glm::vec3 lightDiffuse(1.0f, 1.0f, 1.0f);
+    glm::vec3 lightSpecular(0.8f, 0.8f, 0.8f);
+    glm::vec3 lightAmbient(0.2f, 0.2f, 0.2f);
 
     m_glUniformLightBuffer.bind(GL_UNIFORM_BUFFER);
     m_glUniformLightBuffer.setSubData(&lightPos, LIGHT_POSITION_OFFSET);
@@ -260,18 +265,34 @@ void MainApp::paintGL()
     for ( RenderList::iterator i = m_renderTargets.begin(); i != m_renderTargets.end(); ++i )
     {
         // set model uniforms
-        const glm::mat4 &modelMatrix = (*i)->getModelMatrix();
-        const glm::mat4 modelViewMatrix = viewMatrix * modelMatrix;
-        const glm::mat4 mvpMatrix = m_projectionMatrix * modelViewMatrix;
-        const glm::mat4 normalMatrix = glm::transpose(glm::inverse(modelViewMatrix));
+        const glm::mat4& modelMatrix = (*i)->getModelMatrix();
+        const glm::mat4  modelViewMatrix = viewMatrix * modelMatrix;
+        const glm::mat4  mvpMatrix = m_projectionMatrix * modelViewMatrix;
+        const glm::mat4  normalMatrix = glm::transpose(glm::inverse(modelViewMatrix));
 
         m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
         m_glUniformMatrixBuffer.setSubData(&mvpMatrix, MAT_MVP_OFFSET); 
         m_glUniformMatrixBuffer.setSubData(&modelViewMatrix, MAT_MV_OFFSET); 
         m_glUniformMatrixBuffer.setSubData(&normalMatrix, MAT_NORMAL_OFFSET); 
 
-        (*i)->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
         (*i)->draw(DRAW_MATERIAL);
+    }
+
+    m_glProgramTexD.use();
+    for ( RenderList::iterator i = m_renderTargets.begin(); i != m_renderTargets.end(); ++i )
+    {
+        // set model uniforms
+        const glm::mat4& modelMatrix = (*i)->getModelMatrix();
+        const glm::mat4  modelViewMatrix = viewMatrix * modelMatrix;
+        const glm::mat4  mvpMatrix = m_projectionMatrix * modelViewMatrix;
+        const glm::mat4  normalMatrix = glm::transpose(glm::inverse(modelViewMatrix));
+
+        m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
+        m_glUniformMatrixBuffer.setSubData(&mvpMatrix, MAT_MVP_OFFSET); 
+        m_glUniformMatrixBuffer.setSubData(&modelViewMatrix, MAT_MV_OFFSET); 
+        m_glUniformMatrixBuffer.setSubData(&normalMatrix, MAT_NORMAL_OFFSET); 
+
+        (*i)->draw(DRAW_TEXTURE_D);
     }
 
     GLProgram::resetUsed();

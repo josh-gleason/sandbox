@@ -11,7 +11,9 @@
 
 // same order as TEXTURE_TYPES defined in iGLRenderable
 const aiTextureType AI_TEXTURE_TYPES[] = {aiTextureType_DIFFUSE, aiTextureType_SPECULAR, aiTextureType_NORMALS};
-const int TEXTURE_TYPE_COUNT = sizeof(AI_TEXTURE_TYPES)/sizeof(aiTextureType);
+
+const int TEXTURE_TYPE_COUNT = 1; // Just checking for DIFFUSE textures for now 
+//const int TEXTURE_TYPE_COUNT = sizeof(AI_TEXTURE_TYPES)/sizeof(aiTextureType);
 
 Model::Model() :
     m_minMaxInit(false),
@@ -23,9 +25,6 @@ Model::~Model()
 
 void Model::centerScaleModel()
 {
-    if ( !m_minMaxInit )
-        return;
-
     float scale = 2.0f / std::max(m_maxVertex.x - m_minVertex.x,
                          std::max(m_maxVertex.y - m_minVertex.y,
                                   m_maxVertex.z - m_minVertex.z));
@@ -34,101 +33,76 @@ void Model::centerScaleModel()
     glm::vec3 translate = glm::vec3(-center.x, -m_minVertex.y, -center.z);
 
     m_modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(scale,scale,scale)),translate);
+    std::cout << "Scale : " << scale << std::endl;
 }
 
 void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
 {
+    // default value is to have no textures
     m_materials[materialIdx].drawType = DRAW_MATERIAL;
-    m_materials[materialIdx].texture.resize(TEXTURE_TYPE_COUNT);
-    m_materials[materialIdx].texTarget.resize(TEXTURE_TYPE_COUNT);
 
-    for ( int i = 0; i < TEXTURE_TYPE_COUNT; ++i )
+    aiString texImg("");
+    aiReturn queryResult =
+        material.Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texImg);
+
+    std::cout << "Material Index " << materialIdx << std::endl;
+
+    if ( queryResult == AI_SUCCESS )
     {
-        std::cout << "i : " << i << std::endl;
-        aiString texImg("");
-        aiReturn queryResult;
-        
-        queryResult = material.Get(AI_MATKEY_TEXTURE(AI_TEXTURE_TYPES[i], 0), texImg);
+        std::cout << "Found Diffuse texture" << std::endl;
 
-        if ( queryResult == AI_SUCCESS )
-        {
-            switch (AI_TEXTURE_TYPES[i])
-            {
-                case aiTextureType_DIFFUSE:
-                    std::cout << "Found diffuse" << std::endl;
-                    break;
-                case aiTextureType_SPECULAR:
-                    std::cout << "Found specular" << std::endl;
-                    break;
-                case aiTextureType_NORMALS:
-                    std::cout << "Found bump" << std::endl;
-                    break;
-                default:
-                    std::cout << "Found unknown" << std::endl;
-            }
+        // set draw type to include bit representing diffuse texture
+        m_materials[materialIdx].drawType =
+            static_cast<DrawType>(static_cast<unsigned int>(m_materials[materialIdx].drawType) | TEXTURE_DIFFUSE);
 
-            m_materials[materialIdx].drawType =
-                static_cast<DrawType>(static_cast<unsigned int>(m_materials[materialIdx].drawType) | TEXTURE_TYPES[i]);
+        // activate texture 0 for the diffuse texture
+        glActiveTexture(GL_TEXTURE0);
 
-            // activate texture i
-            glActiveTexture(GL_TEXTURE0 + i);
+        // create local path to texture
+        bf::path texPath = m_modelDir / texImg.C_Str();
 
-            // create local path to texture
-            bf::path texPath = m_modelDir / texImg.C_Str();
-
-            // generate a texture
-            GLTexture tex2d;
-            tex2d.generate(1);
-            tex2d.bind(GL_TEXTURE_2D);
+        // generate a texture (will be copied to array once sure it is valid)
+        GLTexture tex2d;
+        tex2d.generate(1);
+        tex2d.bind(GL_TEXTURE_2D);
             
-            // load the texture into opengl
+        // load the texture into opengl
+        if ( !tex2d.loadImageData(texPath.c_str()) )
+        {
+            // try this path too
+            bf::path texPath = m_modelDir / "Texture" / texImg.C_Str();
             if ( !tex2d.loadImageData(texPath.c_str()) )
             {
-                // try this path too
-                bf::path texPath = m_modelDir / "Texture" / texImg.C_Str();
-                if ( !tex2d.loadImageData(texPath.c_str()) )
-                {
-                    std::cout << "Unable to load texture \"" << texImg.C_Str()
-                              << "\"" << std::endl;
-                    // disable bit
-                    m_materials[materialIdx].drawType =
-                        static_cast<DrawType>(static_cast<unsigned int>(m_materials[materialIdx].drawType) & ~(TEXTURE_TYPES[i]));
-                }
-            }
+                std::cout << "Unable to load texture \"" << texImg.C_Str()
+                          << "\"" << std::endl;
 
-            // save the texture
-            if ( (m_materials[materialIdx].drawType & TEXTURE_TYPES[i]) == TEXTURE_TYPES[i] )
-            {
-                std::cout << "Using texture type : " << i << std::endl;
-                m_materials[materialIdx].useTexture = true;
-                tex2d.generateMipMap(GL_TEXTURE_2D);
-                m_materials[materialIdx].texture[i] = tex2d;
-                m_materials[materialIdx].texTarget[i] = GL_TEXTURE_2D;
+                // we were wrong, no diffuse texture so disable the bit
+                m_materials[materialIdx].drawType =
+                    static_cast<DrawType>(static_cast<unsigned int>(m_materials[materialIdx].drawType) & (~TEXTURE_DIFFUSE));
             }
-           
-            tex2d.unbindTextures(GL_TEXTURE_2D);
         }
-        else
+
+        // if texture is valid save the texture to the Material list
+        if ( (m_materials[materialIdx].drawType & TEXTURE_DIFFUSE) == TEXTURE_DIFFUSE )
         {
-            switch (AI_TEXTURE_TYPES[i])
-            {
-                case aiTextureType_DIFFUSE:
-                    std::cout << "NOT FOUND diffuse" << std::endl;
-                    break;
-                case aiTextureType_SPECULAR:
-                    std::cout << "NOT FOUND specular" << std::endl;
-                    break;
-                case aiTextureType_NORMALS:
-                    std::cout << "NOT FOUND bump" << std::endl;
-                    break;
-                default:
-                    std::cout << "NOT FOUND unknown" << std::endl;
-            }
+            // use textures
+            m_materials[materialIdx].useTexture = true;
+
+            // generate mip maps to make rendering less intense
+            tex2d.generateMipMap(GL_TEXTURE_2D);
+            m_materials[materialIdx].texture = tex2d;
+            m_materials[materialIdx].texTarget = GL_TEXTURE_2D;
         }
+       
+        tex2d.unbindTextures(GL_TEXTURE_2D);
+    }
+    else // no textures
+    {
+        std::cout << "Diffuse texture not found with material" << std::endl;
     }
     std::cout << "FINAL TEXTURE TYPE : " << m_materials[materialIdx].drawType << std::endl;
 
-    // reset active texture
+    // reset active texture to default
     glActiveTexture(GL_TEXTURE0);
 }
 
@@ -141,7 +115,8 @@ void Model::loadMaterials(aiMaterial** materials, unsigned int numMaterials)
     {
         aiMaterial &material = *(materials[i]);
 
-        aiString name;
+        // default values for texture
+        aiString name(std::string("none"));
         aiColor3D ambient(0.2f, 0.2f, 0.2f);
         aiColor3D diffuse(1.0f, 0.5f, 0.5f);
         aiColor3D specular(0.3f, 0.3f, 0.3f);
@@ -149,6 +124,7 @@ void Model::loadMaterials(aiMaterial** materials, unsigned int numMaterials)
         aiColor3D emissive(0.0f, 0.0f, 0.0f);
         aiColor3D transparent(0.0f, 0.0f, 0.0f);
         m_materials[i].shininess = 20.0;
+        m_materials[i].texBlend = 1.0f;
 
         material.Get(AI_MATKEY_NAME, name);
         material.Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
@@ -157,8 +133,8 @@ void Model::loadMaterials(aiMaterial** materials, unsigned int numMaterials)
         material.Get(AI_MATKEY_COLOR_EMISSIVE, emissive);
         material.Get(AI_MATKEY_COLOR_TRANSPARENT, transparent);
         material.Get(AI_MATKEY_SHININESS, m_materials[i].shininess);
-        
-        m_materials[i].texBlend = 1.0f;
+        material.Get(AI_MATKEY_TEXBLEND_DIFFUSE(0), m_materials[i].texBlend);
+
         m_materials[i].name = name.C_Str();
         m_materials[i].diffuse = glm::vec3(diffuse.r, diffuse.g, diffuse.b);
         m_materials[i].ambient = glm::vec3(ambient.r, ambient.g, ambient.b);
@@ -166,12 +142,12 @@ void Model::loadMaterials(aiMaterial** materials, unsigned int numMaterials)
         m_materials[i].emissive = glm::vec3(emissive.r, emissive.g, emissive.b);
         m_materials[i].transparent = glm::vec3(transparent.r, transparent.g, transparent.b);
 
-        m_materials[i].drawType = DRAW_MATERIAL;
-//        this->loadMaterialTextures(i, material);
+        // set texture info
+        this->loadMaterialTextures(i, material);
     }
 }
 
-void Model::loadVertices(const aiMesh& mesh, GLsizei bufferIdx)
+void Model::loadVertices(const aiMesh& mesh, GLsizei bufferIdx, bool firstQuery)
 {
     const aiVector3D* positions = mesh.mVertices;
     const aiVector3D* normals = mesh.mNormals;
@@ -179,6 +155,10 @@ void Model::loadVertices(const aiMesh& mesh, GLsizei bufferIdx)
 
     // interleave the positions and normals
     GLfloat *vertices = new GLfloat[numVertices*6];
+   
+    if ( firstQuery )
+        m_minVertex = m_maxVertex =
+            glm::vec3(positions[0].x, positions[0].y, positions[0].z);
 
     // copy positions and normals into single, interleaved array
     for ( unsigned int i = 0; i < numVertices*6; i+=6 )
@@ -189,23 +169,16 @@ void Model::loadVertices(const aiMesh& mesh, GLsizei bufferIdx)
         vertices[i+3] = normals[i/6].x;
         vertices[i+4] = normals[i/6].y;
         vertices[i+5] = normals[i/6].z;
-        if ( !m_minMaxInit )
-        {
-            m_minMaxInit = true;
-            m_minVertex =
-            m_maxVertex = glm::vec3(positions[i/6].x, positions[i/6].y, positions[i/6].z);
-        }
-        else
-        {
-            m_minVertex = glm::vec3(
-                std::min(vertices[i  ], m_minVertex.x),
-                std::min(vertices[i+1], m_minVertex.y),
-                std::min(vertices[i+2], m_minVertex.z));
-            m_maxVertex = glm::vec3(
-                std::max(vertices[i  ], m_maxVertex.x),
-                std::max(vertices[i+1], m_maxVertex.y),
-                std::max(vertices[i+2], m_maxVertex.z));
-        }
+
+        // while loading, determine bounding box
+        m_minVertex = glm::vec3(
+            std::min(vertices[i  ], m_minVertex.x),
+            std::min(vertices[i+1], m_minVertex.y),
+            std::min(vertices[i+2], m_minVertex.z));
+        m_maxVertex = glm::vec3(
+            std::max(vertices[i  ], m_maxVertex.x),
+            std::max(vertices[i+1], m_maxVertex.y),
+            std::max(vertices[i+2], m_maxVertex.z));
     }
 
     // load vertices into an array buffer
@@ -281,14 +254,18 @@ void Model::loadTangents(const aiMesh &mesh, GLsizei bufferIdx)
     delete [] vertices;
 }
 
-void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPosition, GLAttribute& vNormal)
-//void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPosition, GLAttribute& vNormal, GLAttribute& vTangent, GLAttribute& vBinormal, GLAttribute& vUvCoord)
+void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes)
 {
     unsigned int vertexBufferIdx;
     unsigned int uvBufferIdx;
-    unsigned int tangentBufferIdx;
     unsigned int elementBufferIdx;
     unsigned int nextBuffer = 0;
+    bool initMinMaxSearch = true;
+
+    // attributes
+    GLAttribute vPosition(V_POSITION);
+    GLAttribute vNormal(V_NORMAL);
+    GLAttribute vUvCoord(V_UVCOORD);
 
     // resize the mesh information vectors
     m_meshInfo.resize(numMeshes);
@@ -296,19 +273,17 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPo
     // one VAO for each mesh
     m_vao.create(numMeshes);
 
+    // determine number of buffers needed
     unsigned int bufferCount = 0;
     for ( unsigned int i = 0; i < numMeshes; ++i )
     {
         aiMesh& mesh = *(meshes[i]);
-        
-        bool hasTexture = m_materials[mesh.mMaterialIndex].useTexture;
-        
-        if ( hasTexture )
-            bufferCount+=2; // tangents and uvs
-        bufferCount+=2;
+        if ( m_materials[mesh.mMaterialIndex].drawType != DRAW_MATERIAL )
+            bufferCount++; // uv buffer
+        bufferCount+=2; // vertex and element buffers
     }
 
-    // generate 2 buffers for each mesh, 1 for vertex/normals (interleaved) and 1 for the element array
+    // generate the required number of buffers
     m_vertexBuffer.generate(bufferCount);
 
     // copy vertices into meshes
@@ -317,30 +292,24 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPo
         // provide easier access to *(meshes[i])
         aiMesh& mesh = *(meshes[i]);
         
-        bool hasTexture = m_materials[mesh.mMaterialIndex].useTexture;
+        bool useTexture = m_materials[mesh.mMaterialIndex].useTexture; 
 
         vertexBufferIdx = nextBuffer++;
         elementBufferIdx = nextBuffer++;
-        if ( hasTexture )
-        {
+        if ( useTexture )
             uvBufferIdx = nextBuffer++;
-            tangentBufferIdx = nextBuffer++;
-        }
 
         // enable the VAO for this mesh and enable the necessary attributes
         // using braces/indentation to show what code applies to this vao
         m_vao.bind(i);
         {
             // Load vertices and faces into buffers
-            this->loadVertices(mesh, vertexBufferIdx);
+            this->loadVertices(mesh, vertexBufferIdx, initMinMaxSearch);
             this->loadFaces(mesh.mFaces, mesh.mNumFaces, elementBufferIdx);
-            if ( hasTexture )
+            if ( useTexture )
             {
-//                this->loadUvs(mesh, uvBufferIdx);
-//                this->loadTangents(mesh, tangentBufferIdx);
-//                vUvCoord.enable();
-//                vTangent.enable();
-//                vBinormal.enable();
+                this->loadUvs(mesh, uvBufferIdx);
+                vUvCoord.enable();
             }
 
             // enable the attributes for the VAO
@@ -354,20 +323,15 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPo
             m_vertexBuffer.bind(GL_ARRAY_BUFFER, vertexBufferIdx);
             vPosition.loadBufferData(3, sizeof(GLfloat)*6);
             vNormal.loadBufferData(3, sizeof(GLfloat)*6, sizeof(GLfloat)*3);
-            if ( hasTexture )
+            if ( useTexture )
             {
-                // TODO (is this needed? )
-//                m_vertexBuffer.unbindBuffers(GL_ARRAY_BUFFER);
-//                m_vertexBuffer.bind(GL_ARRAY_BUFFER, uvBufferIdx);
-//                vUvCoord.loadBufferData(2, sizeof(GLfloat)*2);
-
-                // load tangents and binormals
-//                m_vertexBuffer.bind(GL_ARRAY_BUFFER, tangentBufferIdx);
-//                vTangent.loadBufferData(3, sizeof(GLfloat)*6);
-//                vBinormal.loadBufferData(3, sizeof(GLfloat)*6, sizeof(GLfloat)*3);
+                vUvCoord.enable();
+                m_vertexBuffer.bind(GL_ARRAY_BUFFER, uvBufferIdx);
+                vUvCoord.loadBufferData(2, sizeof(GLfloat)*2);
             }
 
             // bind the element array buffer for the VAO
+            // (note here that GL_ARRAY_BUFFERS are NOT stored by the VAO) but attribute enables are
             m_vertexBuffer.bind(GL_ELEMENT_ARRAY_BUFFER, elementBufferIdx);
         }
         // unbind the VAO so that no further changes will affect it
@@ -376,33 +340,28 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes, GLAttribute& vPo
         // store material idx and number of faces
         m_meshInfo[i].materialIdx = mesh.mMaterialIndex;
         m_meshInfo[i].numElements = 3 * mesh.mNumFaces;
+
+        // only valid first time through the loop
+        initMinMaxSearch = false;
     }
 }
 
-bool Model::init(const std::string& filename, GLAttribute& vPosition, GLAttribute& vNormal)
-//bool Model::init(const std::string& filename, GLAttribute& vPosition, GLAttribute& vNormal, GLAttribute& vTangent, GLAttribute &vBinormal, GLAttribute& vUvCoord)
+bool Model::init(const std::string& filename)
 {
     m_modelDir = bf::path(filename).remove_filename();
 
+    // load the scene
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile( filename,// aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_GenSmoothNormals );
-        aiProcess_GenSmoothNormals         |
-        aiProcess_CalcTangentSpace         |
-        aiProcess_GenUVCoords              |
-        aiProcess_Triangulate              |    // only get triangles
-        aiProcess_JoinIdenticalVertices    |    // save memory
-        aiProcess_SortByPType              |    // This and the next one ignore points/lines
-        aiProcess_FindDegenerates);             // Remove bad triangles (share one or more points)
+    const aiScene* scene =
+        importer.ReadFile( filename, aiProcessPreset_TargetRealtime_MaxQuality );
 
     if (!scene)
         return false;
 
-    m_minMaxInit = false;
-    // copy the materials over
+    // flag used to tell loadMeshes that no computations have been done
     this->loadMaterials(scene->mMaterials, scene->mNumMaterials);
-    this->loadMeshes(scene->mMeshes, scene->mNumMeshes, vPosition, vNormal);
-    //this->loadMeshes(scene->mMeshes, scene->mNumMeshes, vPosition, vNormal, vTangent, vBinormal, vUvCoord);
-
+    this->loadMeshes(scene->mMeshes, scene->mNumMeshes);
+   
     // initialize the model matrix
     this->centerScaleModel();
     return true;
@@ -432,6 +391,9 @@ void Model::setUniforms(GLBuffer &ubo, UniformType type)
         case UniformType::MATERIALS:
             m_materialUbo = ubo;
             break;
+        case UniformType::TEXBLEND:
+            m_texBlendUbo = ubo;
+            break;
         default:
             std::cout << "Warning: type not handled" << std::endl;
     }
@@ -448,6 +410,28 @@ void Model::draw(DrawType type)
                     this->drawCommon(i);
             break;
         }
+        case DrawType::DRAW_TEXTURE_D:  // Diffuse texture only
+        {
+            for ( size_t i = 0; i < m_meshInfo.size(); ++i )
+            {
+                Material& material = m_materials[m_meshInfo[i].materialIdx];
+
+                if ( material.drawType != DRAW_TEXTURE_D )
+                    continue;
+                
+                // bind the correct texture
+                glActiveTexture(GL_TEXTURE0);
+                material.texture.setSampling(material.texTarget,
+                        GL_LINEAR_MIPMAP_LINEAR,
+                        GL_LINEAR,
+                        GL_CLAMP_TO_EDGE,
+                        GL_CLAMP_TO_EDGE);
+                material.texture.bind(material.texTarget);
+                
+                this->drawCommon(i);
+            }
+            break;
+        }
         default:
         {
             std::cout << "Warning: Draw type not handeled" << std::endl;
@@ -457,16 +441,17 @@ void Model::draw(DrawType type)
 
 void Model::drawCommon(size_t idx)
 {
+    // don't draw wires/bones in models
     if ( this->isWire(m_materials[m_meshInfo[idx].materialIdx].name) )
         return;
-  
+
     // set the materials UBO
     m_materialUbo.bind(GL_UNIFORM_BUFFER);
     m_materialUbo.setSubData(&(m_materials[m_meshInfo[idx].materialIdx].diffuse), MATERIAL_DIFFUSE_OFFSET);
     m_materialUbo.setSubData(&(m_materials[m_meshInfo[idx].materialIdx].specular), MATERIAL_SPECULAR_OFFSET);
     m_materialUbo.setSubData(&(m_materials[m_meshInfo[idx].materialIdx].ambient), MATERIAL_AMBIENT_OFFSET);
     m_materialUbo.setSubData(&(m_materials[m_meshInfo[idx].materialIdx].shininess), MATERIAL_SHININESS_OFFSET);
-   
+    m_materialUbo.setSubData(&(m_materials[m_meshInfo[idx].materialIdx].texBlend), MATERIAL_TEXBLEND_OFFSET);
     GLBuffer::unbindBuffers(GL_UNIFORM_BUFFER);
 
     m_vao.bind(idx);

@@ -8,7 +8,7 @@
 class GLAttribute
 {
 public:
-    GLAttribute() : m_attribute(-1)
+    GLAttribute(GLint pos = -1) : m_attribute(pos)
     {}
 
     ~GLAttribute()
@@ -37,6 +37,11 @@ public:
     GLint getAttributeIdx() const
     {
         return m_attribute;
+    }
+
+    void tellLocation(GLint loc)
+    {
+        m_attribute = loc;
     }
 protected:
     GLint  m_attribute;

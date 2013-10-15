@@ -44,8 +44,7 @@ protected:
     bool                   m_good;
 
     GLProgram              m_glProgramMaterial;
-    GLBuffer               m_glVertexPosBuffer;
-    GLBuffer               m_glVertexIdxBuffer;
+    GLProgram              m_glProgramTexD;
     GLBuffer               m_glUniformMatrixBuffer;
     GLBuffer               m_glUniformLightBuffer;
     GLBuffer               m_glUniformMaterialBuffer;

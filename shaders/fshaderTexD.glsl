@@ -3,6 +3,7 @@
 // fragment properties
 in vec3 f_normal;
 in vec3 f_position;
+in vec2 f_uvCoord;
 
 // light properties
 layout(std140) uniform Light
@@ -23,17 +24,22 @@ layout(std140) uniform Material
     uniform float texBlend;
 } material;
 
+uniform sampler2D u_diffuseMap;
+
 // output color
 out vec4 out_color;
 
 void main()
 {
+    //vec3 N = normalize(tbn * (texture2D(u_bumpMap, f_uvCoord) * 2.0 - 1.0).xyz);
     vec3 V = normalize(-f_position);
     vec3 L = normalize(light.position - f_position);
     vec3 N = normalize(f_normal);
     vec3 H = normalize(L + V);
 
-    vec3 kd = material.diffuse;
+    // blend texture with diffuse color
+    vec4 texD = texture2D(u_diffuseMap, f_uvCoord);
+    vec3 kd = mix(material.diffuse, texD.xyz, texD.w * material.texBlend);
     vec3 ks = material.specular;
     vec3 ka = material.ambient;
     float a = material.shininess;

@@ -8,6 +8,13 @@ const unsigned int TEXTURE_DIFFUSE  = 0x1;
 const unsigned int TEXTURE_SPECULAR = 0x2;
 const unsigned int TEXTURE_BUMP     = 0x4;
 
+// attribute locations
+const GLuint V_POSITION = 0;
+const GLuint V_NORMAL   = 1;
+const GLuint V_UVCOORD  = 2;
+const GLuint V_TANGENT  = 3;
+const GLuint V_BINORMAL = 4;
+
 const unsigned int TEXTURE_TYPES[] = {TEXTURE_DIFFUSE, TEXTURE_SPECULAR, TEXTURE_BUMP};
 
 // TEXUTRE TYPES
@@ -28,13 +35,30 @@ enum DrawType {
 };
 
 enum UniformType {
-    MATERIALS           = 0
+    MATERIALS           = 0,
+    TEXBLEND            = 1
 };
+
+// uniform block binding points
+const GLuint UB_MATRICES = 1;
+const GLuint UB_LIGHT    = 2;
+const GLuint UB_MATERIAL = 3;
+
+// uniform block offsets based on layout(std140)
+const GLintptr MAT_MVP_OFFSET     = 0;
+const GLintptr MAT_MV_OFFSET      = sizeof(glm::mat4);
+const GLintptr MAT_NORMAL_OFFSET  = sizeof(glm::mat4)*2;
+
+const GLintptr LIGHT_POSITION_OFFSET = 0;
+const GLintptr LIGHT_DIFFUSE_OFFSET  = sizeof(glm::vec4);
+const GLintptr LIGHT_SPECULAR_OFFSET = sizeof(glm::vec4)*2;
+const GLintptr LIGHT_AMBIENT_OFFSET  = sizeof(glm::vec4)*3;
 
 const GLintptr MATERIAL_DIFFUSE_OFFSET   = 0;
 const GLintptr MATERIAL_SPECULAR_OFFSET  = sizeof(glm::vec4);
 const GLintptr MATERIAL_AMBIENT_OFFSET   = sizeof(glm::vec4)*2;
 const GLintptr MATERIAL_SHININESS_OFFSET = sizeof(GLfloat)*11;
+const GLintptr MATERIAL_TEXBLEND_OFFSET  = sizeof(GLfloat)*12;
 
 class iGLRenderable
 {
