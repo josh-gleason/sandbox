@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <IL/il.h>
+#include <IL/ilu.h>
 
 int main(int argc, char *argv[])
 {
@@ -16,6 +17,7 @@ int main(int argc, char *argv[])
 
     // initialize devil
     ilInit();
+    iluInit();
 
     QApplication app(argc, argv);
 

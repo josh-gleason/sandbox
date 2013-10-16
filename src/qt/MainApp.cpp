@@ -104,7 +104,7 @@ void MainApp::initializeGL()
     glDepthFunc(GL_LESS);     // The Type Of Depth Test To Do
     glShadeModel(GL_SMOOTH);  // Enables Smooth Color Shading
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-
+    CHECKERR
 ////////////////////////////////////////////// MATERIAL PROGRAM
 
     // initilize shaders
@@ -249,9 +249,9 @@ void MainApp::paintGL()
     const glm::mat4 &viewMatrix = m_camera.getViewMatrix();
    
     // set lighting
-    glm::vec3 lightPos((viewMatrix*glm::vec4(0.0f, -4.0f, 0.0f, 1.0f)).xyz());
+    glm::vec3 lightPos((viewMatrix*glm::vec4(0.0f, 0.0f, 4.0f, 1.0f)).xyz());
     glm::vec3 lightDiffuse(1.0f, 1.0f, 1.0f);
-    glm::vec3 lightSpecular(0.8f, 0.8f, 0.8f);
+    glm::vec3 lightSpecular(0.2f, 0.2f, 0.2f);
     glm::vec3 lightAmbient(0.2f, 0.2f, 0.2f);
 
     m_glUniformLightBuffer.bind(GL_UNIFORM_BUFFER);

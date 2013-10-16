@@ -11,6 +11,33 @@ public:
     GLTexture();
     ~GLTexture();
 
+    GLTexture &operator=(const GLTexture& rhs);
+
+// keep for debugging (needs #include opencv2/opencv.hpp)
+#if 0
+    void showTexture(GLsizei idx = 0)
+    {
+        GLint width, height, format;
+        this->bind(GL_TEXTURE_2D, idx);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, &format);
+
+        std::cout << "Width/Height : (" << width << ',' << height << ')' << std::endl;
+        cv::Mat img;
+        if ( format == GL_RGB || format == GL_BGR )
+            img = cv::Mat(height, width, CV_8UC3);
+        else
+            img = cv::Mat(height, width, CV_8UC4);
+
+        glGetTexImage(GL_TEXTURE_2D, 0, format, GL_UNSIGNED_BYTE, (void*)(img.data));
+        cv::flip(img,img,0);    // flip vertical
+        cv::imshow("Texture", img);
+        cv::waitKey(0);
+        cv::destroyWindow("Texture");
+    }
+#endif
+
     bool generate(GLsizei n = 1);
 
     // Supported values for target
@@ -54,6 +81,8 @@ public:
 
     static void unbindTextures(GLenum target);
 protected:
+    void clean();
+
     struct TexParameters
     {
         GLuint textureId;

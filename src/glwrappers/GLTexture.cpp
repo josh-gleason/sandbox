@@ -2,9 +2,7 @@
 
 #include <iostream>
 #include <IL/il.h>
-
-//#include <opencv/cv.hpp>
-//#include <opencv2/highgui/highgui.hpp>
+#include <IL/ilu.h>
 
 GLTexture::GLTexture() :
     m_texCount(nullptr),
@@ -13,8 +11,24 @@ GLTexture::GLTexture() :
 
 GLTexture::~GLTexture()
 {
+}
+    
+GLTexture& GLTexture::operator=(const GLTexture& rhs)
+{
     // clean up
-    if ( m_texParameters.use_count() == 1 && m_texParameters == nullptr && m_texCount != nullptr)
+    this->clean();
+
+    m_texParameters = rhs.m_texParameters;
+    m_texCount = rhs.m_texCount;
+
+    return *this;
+}
+
+
+void GLTexture::clean()
+{
+    // clean up
+    if ( m_texParameters != nullptr && m_texParameters.use_count() == 1 && m_texCount != nullptr)
     {
         GLuint *textures = new GLuint[*m_texCount];
         for ( GLsizei i = 0; i < *m_texCount; ++i )
@@ -29,9 +43,11 @@ bool GLTexture::generate(GLsizei n)
 {
     if ( n > 0 )
     {
-        m_texCount = std::shared_ptr<GLsizei>(new GLsizei[n]);
-        m_texParameters = boost::shared_array<TexParameters>(new TexParameters[n]);
+        this->clean();
 
+        m_texCount = std::shared_ptr<GLsizei>(new GLsizei);
+        m_texParameters = boost::shared_array<TexParameters>(new TexParameters[n]);
+      
         GLuint *textures = new GLuint[n];
         glGenTextures(n, textures);
         for ( GLsizei i = 0; i < n; ++i )
@@ -39,6 +55,10 @@ bool GLTexture::generate(GLsizei n)
             m_texParameters[i].textureId = textures[i];
             m_texParameters[i].target = GL_NONE;
         }
+        
+        // This line! OMG so many problems because it was forgotten!
+        *m_texCount = n;        
+
         delete [] textures;
         return true;
     }
@@ -77,6 +97,12 @@ bool GLTexture::loadImageData(const char* filename, GLsizei idx, GLenum internal
     bool retVal = false;
     if ( ilLoadImage(filename) )
     {
+        // flip image in necessary
+        ILinfo ImageInfo;
+        iluGetImageInfo(&ImageInfo);
+        if( ImageInfo.Origin == IL_ORIGIN_UPPER_LEFT )
+            iluFlipImage();
+
         // get image information
         ILubyte* data = ilGetData();
         ILint width = ilGetInteger(IL_IMAGE_WIDTH);

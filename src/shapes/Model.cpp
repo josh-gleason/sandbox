@@ -35,7 +35,6 @@ void Model::centerScaleModel()
     glm::vec3 translate = glm::vec3(-center.x, -m_minVertex.y, -center.z);
 
     m_modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(scale,scale,scale)),translate);
-    std::cout << "Scale : " << scale << std::endl;
 }
 
 void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
@@ -58,7 +57,7 @@ void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
             static_cast<DrawType>(static_cast<unsigned int>(m_materials[materialIdx].drawType) | TEXTURE_DIFFUSE);
 
         // activate texture 0 for the diffuse texture
-//        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE0);
 
         // create local path to texture
         bf::path texPath = m_modelDir / texImg.C_Str();
@@ -105,7 +104,7 @@ void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
     std::cout << "FINAL TEXTURE TYPE : " << m_materials[materialIdx].drawType << std::endl;
 
     // reset active texture to default
-//    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE0);
 }
 
 void Model::loadMaterials(aiMaterial** materials, unsigned int numMaterials)
@@ -136,6 +135,10 @@ void Model::loadMaterials(aiMaterial** materials, unsigned int numMaterials)
         material.Get(AI_MATKEY_COLOR_TRANSPARENT, transparent);
         material.Get(AI_MATKEY_SHININESS, m_materials[i].shininess);
         material.Get(AI_MATKEY_TEXBLEND_DIFFUSE(0), m_materials[i].texBlend);
+       
+        // sometimes the ambient is all 1s making things washed out
+        if ( ambient.r > 0.99 && ambient.g > 0.99 && ambient.b > 0.99 )
+            ambient.r = ambient.g = ambient.b = 0.1;
 
         m_materials[i].name = name.C_Str();
         m_materials[i].diffuse = glm::vec3(diffuse.r, diffuse.g, diffuse.b);
@@ -371,10 +374,7 @@ bool Model::init(const std::string& filename)
     // load the scene
     Assimp::Importer importer;
     const aiScene* scene =
-        importer.ReadFile( filename,
-                aiProcessPreset_TargetRealtime_MaxQuality
-                | aiProcess_FlipUVs     // really only do this for obj files
-        );
+        importer.ReadFile( filename, aiProcessPreset_TargetRealtime_MaxQuality);
 
     if (!scene)
         return false;
@@ -445,8 +445,9 @@ void Model::draw(DrawType type)
                 material.texture.setSampling(material.texTarget,
                         GL_LINEAR_MIPMAP_LINEAR,
                         GL_LINEAR,
-                        GL_WRAP_BORDER,
-                        GL_WRAP_BORDER);
+                        GL_MIRRORED_REPEAT,
+                        GL_MIRRORED_REPEAT);
+                material.texture.generateMipMap(material.texTarget);
                 material.texture.bind(material.texTarget);
                 
                 this->drawCommon(i);
@@ -466,15 +467,14 @@ void Model::drawCommon(size_t idx)
     if ( this->isWire(m_materials[m_meshInfo[idx].materialIdx].name) )
         return;
 
+#if 0
+    // make elexis nude
     std::string name = m_materials[m_meshInfo[idx].materialIdx].name;
     if ( name == "NudeEL_Nude__Elexis_reference_s0" )
         return;
     if ( name == "NudeEL_Nude__Elexis_reference_s" )
         return;
-    else
-        std::cout << m_materials[m_meshInfo[idx].materialIdx].name << std::endl;
-    
-    std::cout << "Size : " << name.size() << std::endl;
+#endif
 
     // set the materials UBO
     m_materialUbo.bind(GL_UNIFORM_BUFFER);
