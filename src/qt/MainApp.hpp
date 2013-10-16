@@ -17,7 +17,7 @@ class MainApp : public QGLWidget
 {
     Q_OBJECT
 public:
-    MainApp(const char* modelPath, QWidget *parent = nullptr);
+    MainApp(const char* modelPath, bool flipUvs = false, QWidget *parent = nullptr);
 
     // check if initializeGL succeeded
     bool good() const;
@@ -61,6 +61,7 @@ protected:
     bool                   m_mouseEnable;
 
     std::string            m_modelPath;
+    bool                   m_flipUvs;
 };
 
 #endif // MAINAPP_HPP 

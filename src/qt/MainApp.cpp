@@ -68,14 +68,15 @@ void printUniformOffsets(GLuint program, GLuint uniformBlock)
     delete [] indices;
 }
 
-MainApp::MainApp(const char* modelPath, QWidget *parent) :
+MainApp::MainApp(const char* modelPath, bool flipUvs, QWidget *parent) :
     QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer), parent),
     m_good(true),
     m_camera(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_Y_LOCK_VERT),
     m_keyFlags(0),
     m_ignoreNextMovement(false),
     m_mouseEnable(false),
-    m_modelPath(modelPath)
+    m_modelPath(modelPath),
+    m_flipUvs(flipUvs)
 {
     this->setCursor(QCursor(Qt::CrossCursor));
     connect(&m_timer,SIGNAL(timeout()),this,SLOT(timerTick()));
@@ -225,7 +226,7 @@ void MainApp::initializeGL()
 
     // initialize triangles
     Model* model = new Model;
-    if ( !model->init(m_modelPath) )
+    if ( !model->init(m_modelPath, m_flipUvs) )
         return reportError("Unable to load model");
 
     // give the model access to material uniform buffer

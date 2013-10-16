@@ -13,7 +13,7 @@ TEMPLATE = app
 TARGET = ../bin/main
 DEPENDPATH += .
 
-LIBS += -lGLEW -lassimp -lIL -lILU -lboost_system -lboost_filesystem
+LIBS += -lGLEW -lassimp -lIL -lboost_system -lboost_filesystem
 
 #Optional opencv usage
 #INCLUDEPATH += /usr/local/include/opencv /usr/local/include

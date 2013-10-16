@@ -45,7 +45,7 @@ public:
     Model();
     ~Model();
 
-    bool init(const std::string& filename);
+    bool init(const std::string& filename, bool flipUvs = false);
     void centerScaleModel();
     
     // inherited virtual functions

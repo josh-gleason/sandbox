@@ -367,14 +367,15 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes)
     }
 }
 
-bool Model::init(const std::string& filename)
+bool Model::init(const std::string& filename, bool flipUvs)
 {
     m_modelDir = bf::path(filename).remove_filename();
 
     // load the scene
     Assimp::Importer importer;
     const aiScene* scene =
-        importer.ReadFile( filename, aiProcessPreset_TargetRealtime_MaxQuality);
+        importer.ReadFile( filename, aiProcessPreset_TargetRealtime_MaxQuality |
+                (flipUvs ? 0 : aiProcess_FlipUVs) );
 
     if (!scene)
         return false;

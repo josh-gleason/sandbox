@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <IL/il.h>
-#include <IL/ilu.h>
 
 GLTexture::GLTexture() :
     m_texCount(nullptr),
@@ -97,12 +96,6 @@ bool GLTexture::loadImageData(const char* filename, GLsizei idx, GLenum internal
     bool retVal = false;
     if ( ilLoadImage(filename) )
     {
-        // flip image in necessary
-        ILinfo ImageInfo;
-        iluGetImageInfo(&ImageInfo);
-        if( ImageInfo.Origin == IL_ORIGIN_UPPER_LEFT )
-            iluFlipImage();
-
         // get image information
         ILubyte* data = ilGetData();
         ILint width = ilGetInteger(IL_IMAGE_WIDTH);
