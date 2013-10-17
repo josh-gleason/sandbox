@@ -5,14 +5,20 @@ in vec3 f_normal;
 in vec3 f_position;
 in vec2 f_uvCoord;
 
-// light properties
-layout(std140) uniform Light
+struct LightInfo
 {
-    uniform vec3 position;
-    uniform vec3 diffuse;
-    uniform vec3 specular;
-    uniform vec3 ambient;
-} light;
+    vec3 position;
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+};
+
+// light properties
+layout(std140) uniform Lights
+{
+    uniform int count;
+    uniform LightInfo info[8];
+} lights;
 
 // material properties
 layout(std140) uniform Material
@@ -29,11 +35,11 @@ uniform sampler2D u_diffuseMap;
 // output color
 out vec4 out_color;
 
-void main()
+vec3 computeLighting(int idx)
 {
     //vec3 N = normalize(tbn * (texture2D(u_bumpMap, f_uvCoord) * 2.0 - 1.0).xyz);
     vec3 V = normalize(-f_position);
-    vec3 L = normalize(light.position - f_position);
+    vec3 L = normalize(lights.info[idx].position - f_position);
     vec3 N = normalize(f_normal);
     vec3 H = normalize(L + V);
 
@@ -51,12 +57,20 @@ void main()
     float t = dot(L,N);
     ks *= max(t,0.0)/max(t,1e-10);
 
-    vec3 id = light.diffuse;
-    vec3 is = light.specular;
-    vec3 ia = light.ambient;
+    vec3 id = lights.info[idx].diffuse;
+    vec3 is = lights.info[idx].specular;
+    vec3 ia = lights.info[idx].ambient;
 
     vec3 Ip = ka*ia + kd*max(dot(L,N),0)*id + ks*pow(max(dot(H,N),0.0),max(a,2))*is;
 
-    out_color = vec4(Ip,1.0);
+    return Ip;
+}
+
+void main()
+{
+    vec3 finalColor = vec3(0.0, 0.0, 0.0);
+    for ( int i = 0; i < lights.count; ++i )
+        finalColor = finalColor + computeLighting(i);
+    out_color = vec4(finalColor, 1.0);
 }
 

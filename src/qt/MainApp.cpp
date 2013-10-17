@@ -71,7 +71,7 @@ void printUniformOffsets(GLuint program, GLuint uniformBlock)
 MainApp::MainApp(const char* modelPath, bool flipUvs, QWidget *parent) :
     QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer), parent),
     m_good(true),
-    m_camera(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_Y_LOCK_VERT),
+    m_camera(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_FREE),// CameraMode::CAMERA_Y_LOCK_VERT),
     m_keyFlags(0),
     m_ignoreNextMovement(false),
     m_mouseEnable(false),
@@ -160,32 +160,26 @@ void MainApp::initializeGL()
         printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uMatrices);
     }
 
-    GLuint uLight = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Light");
+    GLuint uLight = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Lights");
     if ( uLight == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Light" << std::endl;
     else
     {
-        std::cout << "Light Block offsets :: " << std::endl;
-        std::cout << " position : " << LIGHT_POSITION_OFFSET << std::endl
-                  << " diffuse  : " << LIGHT_DIFFUSE_OFFSET << std::endl
-                  << " specular : " << LIGHT_SPECULAR_OFFSET << std::endl
-                  << " ambient  : " << LIGHT_AMBIENT_OFFSET << std::endl;
+        std::cout << "Lights Block offsets :: " << std::endl;
+        std::cout << " info.count      : " << LIGHT_COUNT_OFFSET << std::endl;
+        for ( int i = 0; i < LIGHT_ARRAY_SIZE; ++i )
+        {
+            std::cout << " info.position[" << i << "]: " << LIGHT_ARRAY_OFFSET + i*LIGHT_ARRAY_STEP + LIGHT_ARRAY_POSITION_OFFSET << std::endl
+                      << " info.diffuse[" << i << "] : " << LIGHT_ARRAY_OFFSET + i*LIGHT_ARRAY_STEP + LIGHT_ARRAY_DIFFUSE_OFFSET << std::endl
+                      << " info.specular[" << i << "]: " << LIGHT_ARRAY_OFFSET + i*LIGHT_ARRAY_STEP + LIGHT_ARRAY_SPECULAR_OFFSET << std::endl
+                      << " info.ambient[" << i << "] : " << LIGHT_ARRAY_OFFSET + i*LIGHT_ARRAY_STEP + LIGHT_ARRAY_AMBIENT_OFFSET << std::endl;
+        }
         printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uLight);
     }
 
     GLuint uMaterial = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Material");
     if ( uMaterial == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Material" << std::endl;
-    else
-    {
-        std::cout << "Material Block offsets :: " << std::endl;
-        std::cout << " diffuse  : " << MATERIAL_DIFFUSE_OFFSET << std::endl
-                  << " specular : " << MATERIAL_SPECULAR_OFFSET << std::endl
-                  << " ambient  : " << MATERIAL_AMBIENT_OFFSET << std::endl
-                  << " shininess: " << MATERIAL_SHININESS_OFFSET << std::endl
-                  << " texBlend : " << MATERIAL_TEXBLEND_OFFSET << std::endl;
-        printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uMaterial);
-    }
 
     // bind uniform blocks to indices TODO make this in a class
     glUniformBlockBinding(m_glProgramMaterial.getProgramIdx(), uMatrices, UB_MATRICES);
@@ -196,12 +190,22 @@ void MainApp::initializeGL()
     uMatrices = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Matrices");
     if ( uMatrices == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
-    uLight = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Light");
+    uLight = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Lights");
     if ( uLight == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Light" << std::endl;
     uMaterial = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Material");
     if ( uMaterial == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Material" << std::endl;
+    else
+    {
+        std::cout << "Material Block offsets :: " << std::endl;
+        std::cout << " diffuse  : " << MATERIAL_DIFFUSE_OFFSET << std::endl
+                  << " specular : " << MATERIAL_SPECULAR_OFFSET << std::endl
+                  << " ambient  : " << MATERIAL_AMBIENT_OFFSET << std::endl
+                  << " shininess: " << MATERIAL_SHININESS_OFFSET << std::endl
+                  << " texBlend : " << MATERIAL_TEXBLEND_OFFSET << std::endl;
+        printUniformOffsets(m_glProgramTexD.getProgramIdx(), uMaterial);
+    }
     
     glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uMatrices, UB_MATRICES);
     glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uLight, UB_LIGHT);
@@ -212,11 +216,11 @@ void MainApp::initializeGL()
     m_glUniformMaterialBuffer.generate(1);
 
     m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
-    m_glUniformMatrixBuffer.setEmpty(sizeof(GLfloat)*16*3, GL_DYNAMIC_DRAW);
+    m_glUniformMatrixBuffer.setEmpty(MAT_BUFFER_SIZE, GL_DYNAMIC_DRAW);
     m_glUniformLightBuffer.bind(GL_UNIFORM_BUFFER);
-    m_glUniformLightBuffer.setEmpty(sizeof(GLfloat)*16, GL_DYNAMIC_DRAW);
+    m_glUniformLightBuffer.setEmpty(LIGHT_BUFFER_SIZE, GL_DYNAMIC_DRAW);
     m_glUniformMaterialBuffer.bind(GL_UNIFORM_BUFFER);
-    m_glUniformMaterialBuffer.setEmpty(sizeof(GLfloat)*14, GL_DYNAMIC_DRAW);
+    m_glUniformMaterialBuffer.setEmpty(MATERIAL_BUFFER_SIZE, GL_DYNAMIC_DRAW);
 
     m_glUniformMatrixBuffer.bindBase(UB_MATRICES);
     m_glUniformLightBuffer.bindBase(UB_LIGHT);
@@ -256,10 +260,13 @@ void MainApp::paintGL()
     glm::vec3 lightAmbient(0.2f, 0.2f, 0.2f);
 
     m_glUniformLightBuffer.bind(GL_UNIFORM_BUFFER);
+
+    /* TODO : better lighting
     m_glUniformLightBuffer.setSubData(&lightPos, LIGHT_POSITION_OFFSET);
     m_glUniformLightBuffer.setSubData(&lightDiffuse, LIGHT_DIFFUSE_OFFSET);
     m_glUniformLightBuffer.setSubData(&lightSpecular, LIGHT_SPECULAR_OFFSET);
     m_glUniformLightBuffer.setSubData(&lightAmbient, LIGHT_AMBIENT_OFFSET);
+    */
 
     // Render non-textured targets
     m_glProgramMaterial.use();

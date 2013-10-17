@@ -26,12 +26,12 @@ CONFIG += copy_dir_files
 
 # Input
 SOURCES += ../src/shapes/*.cpp
-SOURCES += ../src/view/*.cpp
+SOURCES += ../src/objects/*.cpp
 SOURCES += ../src/glwrappers/*.cpp
 SOURCES += ../src/qt/*.cpp
 SOURCES += ../src/main.cpp
 HEADERS += ../src/shapes/*.hpp
-HEADERS += ../src/view/*.hpp
+HEADERS += ../src/objects/*.hpp
 HEADERS += ../src/glwrappers/*.hpp
 HEADERS += ../src/qt/*.hpp
 

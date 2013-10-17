@@ -5,7 +5,7 @@
 #include "../glwrappers/GLProgram.hpp"
 #include "../glwrappers/GLBuffer.hpp"
 #include "../glwrappers/GLUniform.hpp"
-#include "../view/Camera.hpp"
+#include "../objects/Camera.hpp"
 #include "../interfaces/iGLRenderable.hpp"
 
 #include <QGLWidget>

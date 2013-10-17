@@ -48,17 +48,40 @@ const GLuint UB_MATERIAL = 3;
 const GLintptr MAT_MVP_OFFSET     = 0;
 const GLintptr MAT_MV_OFFSET      = sizeof(glm::mat4);
 const GLintptr MAT_NORMAL_OFFSET  = sizeof(glm::mat4)*2;
+const GLsizeiptr MAT_BUFFER_SIZE  = sizeof(glm::mat4)*3;
 
-const GLintptr LIGHT_POSITION_OFFSET = 0;
-const GLintptr LIGHT_DIFFUSE_OFFSET  = sizeof(glm::vec4);
-const GLintptr LIGHT_SPECULAR_OFFSET = sizeof(glm::vec4)*2;
-const GLintptr LIGHT_AMBIENT_OFFSET  = sizeof(glm::vec4)*3;
+/*
+struct LightInfo
+{
+    vec3 position;
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+};
+
+// light properties
+layout(std140) uniform Lights
+{
+    uniform int count;
+    uniform LightInfo info[8];
+} lights;
+*/
+const GLintptr LIGHT_COUNT_OFFSET          = 0;
+const GLintptr LIGHT_ARRAY_OFFSET          = sizeof(glm::vec4);
+const GLintptr LIGHT_ARRAY_POSITION_OFFSET = 0;
+const GLintptr LIGHT_ARRAY_DIFFUSE_OFFSET  = sizeof(glm::vec4);
+const GLintptr LIGHT_ARRAY_SPECULAR_OFFSET = sizeof(glm::vec4)*2;
+const GLintptr LIGHT_ARRAY_AMBIENT_OFFSET  = sizeof(glm::vec4)*3;
+const GLintptr LIGHT_ARRAY_STEP            = sizeof(glm::vec4)*4;
+const int LIGHT_ARRAY_SIZE                 = 8; // max number of lights
+const GLsizeiptr LIGHT_BUFFER_SIZE         = LIGHT_ARRAY_OFFSET + LIGHT_ARRAY_STEP * LIGHT_ARRAY_SIZE;
 
 const GLintptr MATERIAL_DIFFUSE_OFFSET   = 0;
 const GLintptr MATERIAL_SPECULAR_OFFSET  = sizeof(glm::vec4);
 const GLintptr MATERIAL_AMBIENT_OFFSET   = sizeof(glm::vec4)*2;
 const GLintptr MATERIAL_SHININESS_OFFSET = sizeof(GLfloat)*11;
 const GLintptr MATERIAL_TEXBLEND_OFFSET  = sizeof(GLfloat)*12;
+const GLsizeiptr MATERIAL_BUFFER_SIZE    = sizeof(GLfloat)*13;
 
 class iGLRenderable
 {
