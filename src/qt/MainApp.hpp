@@ -6,6 +6,7 @@
 #include "../glwrappers/GLBuffer.hpp"
 #include "../glwrappers/GLUniform.hpp"
 #include "../objects/Camera.hpp"
+#include "../objects/Lights.hpp"
 #include "../interfaces/iGLRenderable.hpp"
 
 #include <QGLWidget>
@@ -46,11 +47,13 @@ protected:
     GLProgram              m_glProgramMaterial;
     GLProgram              m_glProgramTexD;
     GLBuffer               m_glUniformMatrixBuffer;
-    GLBuffer               m_glUniformLightBuffer;
+    GLBuffer               m_glUniformLightsBuffer;
     GLBuffer               m_glUniformMaterialBuffer;
 
     glm::mat4              m_projectionMatrix;
     Camera                 m_camera;    // stores/manipulates view matrix
+
+    Lights                 m_lights;
 
     RenderList             m_renderTargets;
 

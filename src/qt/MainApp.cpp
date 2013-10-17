@@ -160,9 +160,9 @@ void MainApp::initializeGL()
         printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uMatrices);
     }
 
-    GLuint uLight = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Lights");
-    if ( uLight == GL_INVALID_INDEX )
-        std::cout << "Warning: Unable to find uniform block Light" << std::endl;
+    GLuint uLights = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Lights");
+    if ( uLights == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Lights" << std::endl;
     else
     {
         std::cout << "Lights Block offsets :: " << std::endl;
@@ -174,7 +174,7 @@ void MainApp::initializeGL()
                       << " info.specular[" << i << "]: " << LIGHT_ARRAY_OFFSET + i*LIGHT_ARRAY_STEP + LIGHT_ARRAY_SPECULAR_OFFSET << std::endl
                       << " info.ambient[" << i << "] : " << LIGHT_ARRAY_OFFSET + i*LIGHT_ARRAY_STEP + LIGHT_ARRAY_AMBIENT_OFFSET << std::endl;
         }
-        printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uLight);
+        printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uLights);
     }
 
     GLuint uMaterial = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Material");
@@ -183,16 +183,16 @@ void MainApp::initializeGL()
 
     // bind uniform blocks to indices TODO make this in a class
     glUniformBlockBinding(m_glProgramMaterial.getProgramIdx(), uMatrices, UB_MATRICES);
-    glUniformBlockBinding(m_glProgramMaterial.getProgramIdx(), uLight, UB_LIGHT);
+    glUniformBlockBinding(m_glProgramMaterial.getProgramIdx(), uLights, UB_LIGHT);
     glUniformBlockBinding(m_glProgramMaterial.getProgramIdx(), uMaterial, UB_MATERIAL);
     
     // same for other program
     uMatrices = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Matrices");
     if ( uMatrices == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
-    uLight = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Lights");
-    if ( uLight == GL_INVALID_INDEX )
-        std::cout << "Warning: Unable to find uniform block Light" << std::endl;
+    uLights = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Lights");
+    if ( uLights == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Lights" << std::endl;
     uMaterial = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Material");
     if ( uMaterial == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Material" << std::endl;
@@ -208,22 +208,22 @@ void MainApp::initializeGL()
     }
     
     glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uMatrices, UB_MATRICES);
-    glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uLight, UB_LIGHT);
+    glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uLights, UB_LIGHT);
     glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uMaterial, UB_MATERIAL);
 
     m_glUniformMatrixBuffer.generate(1);
-    m_glUniformLightBuffer.generate(1);
+    m_glUniformLightsBuffer.generate(1);
     m_glUniformMaterialBuffer.generate(1);
 
     m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
     m_glUniformMatrixBuffer.setEmpty(MAT_BUFFER_SIZE, GL_DYNAMIC_DRAW);
-    m_glUniformLightBuffer.bind(GL_UNIFORM_BUFFER);
-    m_glUniformLightBuffer.setEmpty(LIGHT_BUFFER_SIZE, GL_DYNAMIC_DRAW);
+    m_glUniformLightsBuffer.bind(GL_UNIFORM_BUFFER);
+    m_glUniformLightsBuffer.setEmpty(LIGHT_BUFFER_SIZE, GL_DYNAMIC_DRAW);
     m_glUniformMaterialBuffer.bind(GL_UNIFORM_BUFFER);
     m_glUniformMaterialBuffer.setEmpty(MATERIAL_BUFFER_SIZE, GL_DYNAMIC_DRAW);
 
     m_glUniformMatrixBuffer.bindBase(UB_MATRICES);
-    m_glUniformLightBuffer.bindBase(UB_LIGHT);
+    m_glUniformLightsBuffer.bindBase(UB_LIGHT);
     m_glUniformMaterialBuffer.bindBase(UB_MATERIAL);
    
     GLBuffer::unbindBuffers(GL_UNIFORM_BUFFER);
@@ -243,6 +243,15 @@ void MainApp::initializeGL()
     m_camera.moveStraight(-3.0f);
     m_camera.moveVert(2.0f);
     m_camera.rotateVert(-15.0f);
+    
+    const LightInfo dark({
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f)});
+
+    for ( int i = 0; i < LIGHT_ARRAY_SIZE; ++i )
+        m_lights.addLight(dark);
 }
 
 void MainApp::paintGL()
@@ -250,23 +259,11 @@ void MainApp::paintGL()
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    // compute the view-projection matrix (the model matrix is multiplied by this for each shape)
+    // get the view matrix
     const glm::mat4 &viewMatrix = m_camera.getViewMatrix();
    
-    // set lighting
-    glm::vec3 lightPos((viewMatrix*glm::vec4(0.0f, 0.0f, 4.0f, 1.0f)).xyz());
-    glm::vec3 lightDiffuse(1.0f, 1.0f, 1.0f);
-    glm::vec3 lightSpecular(0.2f, 0.2f, 0.2f);
-    glm::vec3 lightAmbient(0.2f, 0.2f, 0.2f);
-
-    m_glUniformLightBuffer.bind(GL_UNIFORM_BUFFER);
-
-    /* TODO : better lighting
-    m_glUniformLightBuffer.setSubData(&lightPos, LIGHT_POSITION_OFFSET);
-    m_glUniformLightBuffer.setSubData(&lightDiffuse, LIGHT_DIFFUSE_OFFSET);
-    m_glUniformLightBuffer.setSubData(&lightSpecular, LIGHT_SPECULAR_OFFSET);
-    m_glUniformLightBuffer.setSubData(&lightAmbient, LIGHT_AMBIENT_OFFSET);
-    */
+    // set lights
+    m_lights.load(m_glUniformLightsBuffer, 0, viewMatrix);
 
     // Render non-textured targets
     m_glProgramMaterial.use();
@@ -309,6 +306,19 @@ void MainApp::paintGL()
 void MainApp::keyPressEvent(QKeyEvent *event)
 {
     if ( event->isAutoRepeat() ) return;
+    
+    const glm::vec3 position = m_camera.getTranslation()[3].xyz();
+    const LightInfo light({
+        position * -1.0f,
+        glm::vec3(0.6f, 0.6f, 0.6f),
+        glm::vec3(0.3f, 0.3f, 0.3f),
+        glm::vec3(0.0f, 0.0f, 0.0f)});
+    
+    static const LightInfo dark({
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f)});
 
     if ( event->key() == Qt::Key_W )
         m_keyFlags |= MOVE_FORWARD;
@@ -328,12 +338,46 @@ void MainApp::keyPressEvent(QKeyEvent *event)
         m_keyFlags |= ROTATE_CW;
     else if ( event->key() == Qt::Key_Escape )
         qApp->quit();
+    else if ( event->key() == Qt::Key_1 )
+        m_lights.setLightInfo(light, 0);
+    else if ( event->key() == Qt::Key_2 )
+        m_lights.setLightInfo(light, 1);
+    else if ( event->key() == Qt::Key_3 )
+        m_lights.setLightInfo(light, 2);
+    else if ( event->key() == Qt::Key_4 )
+        m_lights.setLightInfo(light, 3);
+    else if ( event->key() == Qt::Key_5 )
+        m_lights.setLightInfo(light, 4);
+    else if ( event->key() == Qt::Key_6 )
+        m_lights.setLightInfo(light, 5);
+    else if ( event->key() == Qt::Key_7 )
+        m_lights.setLightInfo(light, 6);
+    else if ( event->key() == Qt::Key_8 )
+        m_lights.setLightInfo(light, 7);
+    else if ( event->key() == Qt::Key_Exclam )
+        m_lights.setLightInfo(dark, 0);
+    else if ( event->key() == Qt::Key_At )
+        m_lights.setLightInfo(dark, 1);
+    else if ( event->key() == Qt::Key_NumberSign )
+        m_lights.setLightInfo(dark, 2);
+    else if ( event->key() == Qt::Key_Dollar )
+        m_lights.setLightInfo(dark, 3);
+    else if ( event->key() == Qt::Key_Percent )
+        m_lights.setLightInfo(dark, 4);
+    else if ( event->key() == Qt::Key_AsciiCircum )
+        m_lights.setLightInfo(dark, 5);
+    else if ( event->key() == Qt::Key_Ampersand )
+        m_lights.setLightInfo(dark, 6);
+    else if ( event->key() == Qt::Key_Asterisk )
+        m_lights.setLightInfo(dark, 7);
+    
+    this->repaint();
 }
 
 void MainApp::keyReleaseEvent(QKeyEvent *event)
 {
     if ( event->isAutoRepeat() ) return;
-
+    
     if ( event->key() == Qt::Key_W )
         m_keyFlags &= (MOVE_FORWARD ^ 0xff);        
     else if ( event->key() == Qt::Key_S )
