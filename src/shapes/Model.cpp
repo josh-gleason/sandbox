@@ -299,6 +299,8 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes)
     for ( unsigned int i = 0; i < numMeshes; ++i )
     {
         aiMesh& mesh = *(meshes[i]);
+        if ( mesh.mPrimitiveTypes != aiPrimitiveType_TRIANGLE )
+            continue;
         if ( m_materials[mesh.mMaterialIndex].drawType != DRAW_MATERIAL )
             bufferCount++; // uv buffer
         bufferCount+=2; // vertex and element buffers
@@ -312,6 +314,8 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes)
     {
         // provide easier access to *(meshes[i])
         aiMesh& mesh = *(meshes[i]);
+        if ( mesh.mPrimitiveTypes != aiPrimitiveType_TRIANGLE )
+            continue;
         
         bool useTexture = m_materials[mesh.mMaterialIndex].useTexture; 
 
@@ -468,7 +472,7 @@ void Model::drawCommon(size_t idx)
     if ( this->isWire(m_materials[m_meshInfo[idx].materialIdx].name) )
         return;
 
-#if 0
+#if 1
     // make elexis nude
     std::string name = m_materials[m_meshInfo[idx].materialIdx].name;
     if ( name == "NudeEL_Nude__Elexis_reference_s0" )

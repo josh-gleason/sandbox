@@ -310,8 +310,8 @@ void MainApp::keyPressEvent(QKeyEvent *event)
     const glm::vec3 position = m_camera.getTranslation()[3].xyz();
     const LightInfo light({
         position * -1.0f,
-        glm::vec3(0.6f, 0.6f, 0.6f),
-        glm::vec3(0.3f, 0.3f, 0.3f),
+        glm::vec3(rand()%1000 / 1000.0, rand()%1000 / 1000.0, rand()%1000 / 1000.0),
+        glm::vec3(rand()%1000 / 1000.0, rand()%1000 / 1000.0, rand()%1000 / 1000.0),
         glm::vec3(0.0f, 0.0f, 0.0f)});
     
     static const LightInfo dark({
