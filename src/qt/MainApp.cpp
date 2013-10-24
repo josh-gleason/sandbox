@@ -71,7 +71,7 @@ void printUniformOffsets(GLuint program, GLuint uniformBlock)
 MainApp::MainApp(const char* modelPath, bool flipUvs, QWidget *parent) :
     QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer), parent),
     m_good(true),
-    m_camera(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_FREE),// CameraMode::CAMERA_Y_LOCK_VERT),
+    m_camera(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_Y_LOCK_VERT),
     m_keyFlags(0),
     m_ignoreNextMovement(false),
     m_mouseEnable(false),
@@ -102,6 +102,8 @@ void MainApp::initializeGL()
   
     glEnable(GL_DEPTH_TEST);  // Enables Depth Testing
     glEnable(GL_DOUBLEBUFFER);
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthFunc(GL_LESS);     // The Type Of Depth Test To Do
     glShadeModel(GL_SMOOTH);  // Enables Smooth Color Shading
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);

@@ -35,8 +35,11 @@ struct Material
 
 struct MeshInfo
 {
+    std::string name;
     GLsizei numElements;    // number of elements (3 per triangle)
     size_t materialIdx;     // which material to use
+    bool useTexture;
+    GLTexture   texture;    // usually texture stored in material, but sometimes not
 };
 
 class Model : public iGLRenderable

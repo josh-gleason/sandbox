@@ -299,6 +299,15 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes)
     for ( unsigned int i = 0; i < numMeshes; ++i )
     {
         aiMesh& mesh = *(meshes[i]);
+        m_meshInfo[i].name = mesh.mName.C_Str();
+        // TODO I shouldn't really skip everything else
+        if ( mesh.mPrimitiveTypes != aiPrimitiveType_TRIANGLE )
+        {
+            m_meshInfo[i].numElements = 0;
+            continue;
+        }
+        std::cout << "Mesh : " << m_meshInfo[i].name << std::endl;
+
         if ( m_materials[mesh.mMaterialIndex].drawType != DRAW_MATERIAL )
             bufferCount++; // uv buffer
         bufferCount+=2; // vertex and element buffers
@@ -312,6 +321,10 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes)
     {
         // provide easier access to *(meshes[i])
         aiMesh& mesh = *(meshes[i]);
+        
+        // TODO I shouldn't really skip everything else
+        if ( mesh.mPrimitiveTypes != aiPrimitiveType_TRIANGLE )
+            continue;
         
         bool useTexture = m_materials[mesh.mMaterialIndex].useTexture; 
 
@@ -357,7 +370,7 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes)
         }
         // unbind the VAO so that no further changes will affect it
         m_vao.unbindAll();
-        
+
         // store material idx and number of faces
         m_meshInfo[i].materialIdx = mesh.mMaterialIndex;
         m_meshInfo[i].numElements = 3 * mesh.mNumFaces;
@@ -383,7 +396,6 @@ bool Model::init(const std::string& filename, bool flipUvs)
     // flag used to tell loadMeshes that no computations have been done
     this->loadMaterials(scene->mMaterials, scene->mNumMaterials);
     this->loadMeshes(scene->mMeshes, scene->mNumMeshes);
-   
     // initialize the model matrix
     this->centerScaleModel();
     return true;
@@ -465,8 +477,8 @@ void Model::draw(DrawType type)
 void Model::drawCommon(size_t idx)
 {
     // don't draw wires/bones in models
-    if ( this->isWire(m_materials[m_meshInfo[idx].materialIdx].name) )
-        return;
+    //if ( this->isWire(m_materials[m_meshInfo[idx].materialIdx].name) )
+    //    return;
 
 #if 0
     // make elexis nude
