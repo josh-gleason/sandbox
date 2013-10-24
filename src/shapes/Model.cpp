@@ -321,6 +321,8 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes)
     {
         // provide easier access to *(meshes[i])
         aiMesh& mesh = *(meshes[i]);
+        if ( mesh.mPrimitiveTypes != aiPrimitiveType_TRIANGLE )
+            continue;
         
         // TODO I shouldn't really skip everything else
         if ( mesh.mPrimitiveTypes != aiPrimitiveType_TRIANGLE )
@@ -480,7 +482,7 @@ void Model::drawCommon(size_t idx)
     //if ( this->isWire(m_materials[m_meshInfo[idx].materialIdx].name) )
     //    return;
 
-#if 0
+#if 1
     // make elexis nude
     std::string name = m_materials[m_meshInfo[idx].materialIdx].name;
     if ( name == "NudeEL_Nude__Elexis_reference_s0" )

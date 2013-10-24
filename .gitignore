@@ -6,4 +6,5 @@ lib/
 *.a
 *.o
 *.d
+*.out
 3rdParty/glimg/Release
