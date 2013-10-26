@@ -19,6 +19,7 @@ const int TEXTURE_TYPE_COUNT = 1; // Just checking for DIFFUSE textures for now
 
 Model::Model() :
     m_minMaxInit(false),
+    m_scale(1.0),
     m_modelMatrix(1.0)
 {}
 
@@ -27,14 +28,14 @@ Model::~Model()
 
 void Model::centerScaleModel()
 {
-    float scale = 2.0f / std::max(m_maxVertex.x - m_minVertex.x,
+    m_scale = 2.0f / std::max(m_maxVertex.x - m_minVertex.x,
                          std::max(m_maxVertex.y - m_minVertex.y,
                                   m_maxVertex.z - m_minVertex.z));
 
     glm::vec3 center = (m_maxVertex + m_minVertex) / 2.0f;
     glm::vec3 translate = glm::vec3(-center.x, -m_minVertex.y, -center.z);
 
-    m_modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(scale,scale,scale)),translate);
+    m_modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(m_scale,m_scale,m_scale)),translate);
 }
 
 void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
@@ -403,7 +404,7 @@ bool Model::init(const std::string& filename, bool flipUvs)
     return true;
 }
 
-const glm::mat4& Model::getModelMatrix() const
+const glm::mat4& Model::getModelMatrix()
 {
     return m_modelMatrix;
 }

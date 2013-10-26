@@ -13,7 +13,9 @@ TEMPLATE = app
 TARGET = ../bin/main
 DEPENDPATH += .
 
-LIBS += -lGLEW -lassimp -lIL -lboost_system -lboost_filesystem
+LIBS += -lGLEW -lassimp -lIL -lboost_system -lboost_filesystem -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath
+
+INCLUDEPATH += /usr/include/bullet
 
 #Optional opencv usage
 #INCLUDEPATH += /usr/local/include/opencv /usr/local/include
@@ -28,10 +30,12 @@ CONFIG += copy_dir_files
 SOURCES += ../src/shapes/*.cpp
 SOURCES += ../src/objects/*.cpp
 SOURCES += ../src/glwrappers/*.cpp
+SOURCES += ../src/bulletwrappers/*.cpp
 SOURCES += ../src/qt/*.cpp
 SOURCES += ../src/main.cpp
 HEADERS += ../src/shapes/*.hpp
 HEADERS += ../src/objects/*.hpp
 HEADERS += ../src/glwrappers/*.hpp
+HEADERS += ../src/bulletwrappers/*.hpp
 HEADERS += ../src/qt/*.hpp
 

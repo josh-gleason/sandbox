@@ -49,15 +49,15 @@ public:
     ~Model();
 
     bool init(const std::string& filename, bool flipUvs = false);
-    void centerScaleModel();
     
     // inherited virtual functions
-    const glm::mat4& getModelMatrix() const;
+    virtual const glm::mat4& getModelMatrix();
     void draw(DrawType type);
     void setUniforms(GLBuffer& ubo, UniformType type = MATERIALS);
 protected:
     void drawCommon(size_t idx);
-
+    void centerScaleModel();
+    
     static bool isWire(const std::string& name);
     void loadMaterialTextures(int materialIdx, const aiMaterial& material);
     void loadMaterials(aiMaterial** materials, unsigned int numMaterials);
@@ -82,6 +82,7 @@ protected:
     bool                  m_minMaxInit;
     glm::vec3             m_minVertex;
     glm::vec3             m_maxVertex;
+    float                 m_scale;
 
     // the model matrix
     glm::mat4           m_modelMatrix;

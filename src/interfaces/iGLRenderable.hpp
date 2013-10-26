@@ -90,7 +90,7 @@ public:
     virtual ~iGLRenderable() {};
     
     // This will be called
-    virtual const glm::mat4& getModelMatrix() const = 0;
+    virtual const glm::mat4& getModelMatrix() = 0;
     virtual void draw(DrawType type = DRAW_MATERIAL) = 0;
     virtual void setUniforms(GLBuffer &ubo, UniformType type = MATERIALS) = 0;
 };

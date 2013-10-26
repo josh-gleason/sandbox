@@ -34,6 +34,7 @@ import ycm_core
 
 
 pkgconfig = [
+'bullet',
 'opencv',
 'Qt3Support',
 'QtDBus',

@@ -8,3 +8,4 @@ lib/
 *.d
 *.out
 3rdParty/glimg/Release
+*.swp

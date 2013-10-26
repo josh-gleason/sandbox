@@ -8,6 +8,8 @@ class btCollisionDispatcher;
 class btBroadphaseInterface;
 class btSequentialImpulseConstraintSolver;
 class btDiscreteDynamicsWorld;
+class btRigidBody;
+class btGeneric6DofConstraint;
 
 class PhysicsWorld
 {
@@ -16,6 +18,12 @@ public:
     ~PhysicsWorld();
 
     void init();
+    
+    void removeRigidBody(btRigidBody* body);
+    void addRigidBody(btRigidBody* body);
+    void addConstraint(btGeneric6DofConstraint* body);
+    void removeConstraint(btGeneric6DofConstraint* constraint);
+    void tick(double dt);
 protected:
     std::shared_ptr<btDefaultCollisionConfiguration>     m_configuration;
     std::shared_ptr<btCollisionDispatcher>               m_dispatcher;

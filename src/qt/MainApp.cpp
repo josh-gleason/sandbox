@@ -4,7 +4,7 @@
 
 #include "../glwrappers/GLShader.hpp"
 #include "../glwrappers/GLUniform.hpp"
-#include "../shapes/Model.hpp"
+#include "../shapes/Puck.hpp"
 
 // Qt includes
 #include <QTextStream>
@@ -68,19 +68,18 @@ void printUniformOffsets(GLuint program, GLuint uniformBlock)
     delete [] indices;
 }
 
-MainApp::MainApp(const char* modelPath, bool flipUvs, QWidget *parent) :
+MainApp::MainApp(QWidget *parent) : //const char* modelPath, bool flipUvs, QWidget *parent) :
     QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer), parent),
     m_good(true),
     m_camera(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_Y_LOCK_VERT),
     m_keyFlags(0),
     m_ignoreNextMovement(false),
-    m_mouseEnable(false),
-    m_modelPath(modelPath),
-    m_flipUvs(flipUvs)
+    m_mouseEnable(false)
 {
     this->setCursor(QCursor(Qt::CrossCursor));
     connect(&m_timer,SIGNAL(timeout()),this,SLOT(timerTick()));
     m_timer.start(TICK_RATE);
+    m_time.start();
 }
 
 void MainApp::reportError(const QString& error)
@@ -230,16 +229,22 @@ void MainApp::initializeGL()
    
     GLBuffer::unbindBuffers(GL_UNIFORM_BUFFER);
 
-    // initialize triangles
-    Model* model = new Model;
-    if ( !model->init(m_modelPath, m_flipUvs) )
+    // initialize physics
+    m_physics.init();
+
+    // initialize puck
+    std::shared_ptr<Puck> puck = std::shared_ptr<Puck>(new Puck);
+    if ( !puck->init(m_physics, glm::vec3(0.0,5.0,0.0), 0.1f) )
         return reportError("Unable to load model");
 
     // give the model access to material uniform buffer
-    model->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
+    puck->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
 
     // add model to render list
-    m_renderTargets.push_back(std::shared_ptr<iGLRenderable>(model));
+    m_renderTargets.push_back(std::shared_ptr<iGLRenderable>(puck));
+
+    // add model to physics list
+    m_physicsTargets.push_back(std::shared_ptr<iPhysicsObject>(puck));
 
     // move the camera back and up
     m_camera.moveStraight(-3.0f);
@@ -256,6 +261,12 @@ void MainApp::initializeGL()
         m_lights.addLight(dark);
 }
 
+void MainApp::updatePhysicsObjects()
+{
+    for ( PhysicsList::iterator i = m_physicsTargets.begin(); i != m_physicsTargets.end(); ++i )
+        (*i)->updateTransform();
+}
+
 void MainApp::paintGL()
 {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -266,6 +277,9 @@ void MainApp::paintGL()
    
     // set lights
     m_lights.load(m_glUniformLightsBuffer, 0, viewMatrix);
+
+    // update physics objects
+    this->updatePhysicsObjects();
 
     // Render non-textured targets
     m_glProgramMaterial.use();
@@ -312,8 +326,8 @@ void MainApp::keyPressEvent(QKeyEvent *event)
     const glm::vec3 position = m_camera.getTranslation()[3].xyz();
     const LightInfo light({
         position * -1.0f,
-        glm::vec3(rand()%1000 / 1000.0, rand()%1000 / 1000.0, rand()%1000 / 1000.0),
-        glm::vec3(rand()%1000 / 1000.0, rand()%1000 / 1000.0, rand()%1000 / 1000.0),
+        glm::vec3(1.0f,1.0f,1.0f),
+        glm::vec3(0.4f, 0.4f, 0.4f),
         glm::vec3(0.0f, 0.0f, 0.0f)});
     
     static const LightInfo dark({
@@ -441,6 +455,12 @@ void MainApp::mouseReleaseEvent(QMouseEvent * event)
 
 void MainApp::timerTick()
 {
+    // physics tick
+    double dt = 1000.0 * m_time.elapsed();
+    m_time.restart();
+    m_physics.tick(dt); 
+    
+    // update camera
     if ( (m_keyFlags & MOVE_FORWARD) )
         m_camera.moveStraight(0.02f);
     if ( (m_keyFlags & MOVE_BACKWARD) )
@@ -458,10 +478,7 @@ void MainApp::timerTick()
     if ( (m_keyFlags & ROTATE_CW) )
         m_camera.rotateStraight(-1.f);
 
-    if ( m_keyFlags == 0 ) // do not repaint
-        return;
-    else
-        this->repaint();
+    this->repaint();
 }
 
 bool MainApp::good() const
