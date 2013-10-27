@@ -33,7 +33,7 @@ void Model::centerScaleModel()
                               m_maxVertex.z - m_minVertex.z));
 
     glm::vec3 center = (m_maxVertex + m_minVertex) / 2.0f;
-    glm::vec3 translate = glm::vec3(-center.x, -m_minVertex.y, -center.z);
+    glm::vec3 translate = glm::vec3(-center.x, -center.y, -center.z);
 
     m_modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale,m_scale,m_scale)) * glm::translate(glm::mat4(1.0f),translate);
 }

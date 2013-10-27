@@ -21,6 +21,9 @@ bool Puck::init(const PhysicsWorld& world, const glm::vec3& position, double rad
     m_scale *= radius;
     float fRadius = radius;
     m_modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(fRadius, fRadius, fRadius)) * m_modelMatrix;
+    
+    // this is the matrix to which all rotations and translations are applied
+    m_centerScaleMatrix = m_modelMatrix;
 
     // set parameters for dynamic cylinder
     InitialParams params;
@@ -36,9 +39,6 @@ bool Puck::init(const PhysicsWorld& world, const glm::vec3& position, double rad
     btQuaternion q;
     q.setRotation(btVector3(0.0,0.0,1.0),rand()*2.0*M_PI - M_PI);
     params.initialRotation = q; 
-
-    // this is the matrix to which all rotations and translations are applied
-    m_centerScaleMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,params.height/-2.0,0.0f)) * m_modelMatrix;
 
     // initialize physics
     if ( !initPhysics(world, params) )

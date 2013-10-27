@@ -14,7 +14,7 @@ class btRigidBody;
 class btGeneric6DofConstraint;
 
 // TODO move this option to somewhere else
-//#define PHYSICS_DEBUG 
+#define PHYSICS_DEBUG 
 
 #ifdef PHYSICS_DEBUG 
     #include "PhysicsDebug.hpp"
