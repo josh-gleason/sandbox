@@ -18,6 +18,13 @@ DynamicCylinder::~DynamicCylinder()
 void DynamicCylinder::updateTransform()
 {
     m_transform = m_rigidBody->getCenterOfMassTransform();
+
+#ifdef PHYSICS_DEBUG
+    btCylinderShape* shape = reinterpret_cast<btCylinderShape*>(m_collisionShape.get());
+    debug.drawCylinder(shape->getRadius(), shape->getHalfExtentsWithMargin().y(), shape->getUpAxis(), m_rigidBody->getCenterOfMassTransform(), btVector3(0.0,0.0,1.0));
+    debug.loadToBuffer();
+    debug.draw(DrawType::DRAW_MATERIAL);
+#endif // PHYSICS_DEBUG
 }
 
 bool DynamicCylinder::initPhysics(const PhysicsWorld& world, const InitialParams& params)
@@ -27,7 +34,7 @@ bool DynamicCylinder::initPhysics(const PhysicsWorld& world, const InitialParams
    
     m_mass = m_cylinderParams.density * m_cylinderParams.height * m_cylinderParams.radius * m_cylinderParams.radius * M_PI;
     // initialize collision shape as cylinder
-    m_collisionShape = std::shared_ptr<btCollisionShape>(new btCylinderShape(btVector3(m_cylinderParams.radius*2.0, m_cylinderParams.height, m_cylinderParams.radius*2.0)));
+    m_collisionShape = std::shared_ptr<btCollisionShape>(new btCylinderShape(btVector3(m_cylinderParams.radius, m_cylinderParams.height / 2.0, m_cylinderParams.radius)));
     m_collisionShape->calculateLocalInertia(m_mass, m_inertia);
     
     // build motion state
@@ -47,6 +54,7 @@ bool DynamicCylinder::initPhysics(const PhysicsWorld& world, const InitialParams
     // set position of cylinder
     m_transform = m_rigidBody->getCenterOfMassTransform();
     m_transform.setOrigin(m_cylinderParams.initialPosition);
+    m_transform.setRotation(m_cylinderParams.initialRotation);
     m_rigidBody->setCenterOfMassTransform(m_transform);
     
     return true;

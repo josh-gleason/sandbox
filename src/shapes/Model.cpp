@@ -29,13 +29,13 @@ Model::~Model()
 void Model::centerScaleModel()
 {
     m_scale = 2.0f / std::max(m_maxVertex.x - m_minVertex.x,
-                         std::max(m_maxVertex.y - m_minVertex.y,
-                                  m_maxVertex.z - m_minVertex.z));
+                     std::max(m_maxVertex.y - m_minVertex.y,
+                              m_maxVertex.z - m_minVertex.z));
 
     glm::vec3 center = (m_maxVertex + m_minVertex) / 2.0f;
     glm::vec3 translate = glm::vec3(-center.x, -m_minVertex.y, -center.z);
 
-    m_modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(m_scale,m_scale,m_scale)),translate);
+    m_modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale,m_scale,m_scale)) * glm::translate(glm::mat4(1.0f),translate);
 }
 
 void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)

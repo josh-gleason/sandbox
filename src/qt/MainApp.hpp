@@ -10,6 +10,7 @@
 #include "../interfaces/iGLRenderable.hpp"
 #include "../interfaces/iPhysicsObject.hpp"
 #include "../bulletwrappers/PhysicsWorld.hpp"
+#include "../shapes/Puck.hpp"
 
 #include <QGLWidget>
 #include <QTimer>
@@ -71,6 +72,10 @@ protected:
     bool                   m_mouseEnable;
     
     PhysicsWorld           m_physics;
+   
+#ifdef PHYSICS_DEBUG
+    GLProgram m_glProgramDebug;
+#endif
 };
 
 #endif // MAINAPP_HPP 

@@ -14,6 +14,7 @@ const GLuint V_NORMAL   = 1;
 const GLuint V_UVCOORD  = 2;
 const GLuint V_TANGENT  = 3;
 const GLuint V_BINORMAL = 4;
+const GLuint V_COLOR    = 5;
 
 const unsigned int TEXTURE_TYPES[] = {TEXTURE_DIFFUSE, TEXTURE_SPECULAR, TEXTURE_BUMP};
 

@@ -68,7 +68,7 @@ void printUniformOffsets(GLuint program, GLuint uniformBlock)
     delete [] indices;
 }
 
-MainApp::MainApp(QWidget *parent) : //const char* modelPath, bool flipUvs, QWidget *parent) :
+MainApp::MainApp(QWidget *parent) :
     QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer), parent),
     m_good(true),
     m_camera(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_Y_LOCK_VERT),
@@ -233,18 +233,21 @@ void MainApp::initializeGL()
     m_physics.init();
 
     // initialize puck
-    std::shared_ptr<Puck> puck = std::shared_ptr<Puck>(new Puck);
-    if ( !puck->init(m_physics, glm::vec3(0.0,5.0,0.0), 0.1f) )
-        return reportError("Unable to load model");
+    for ( int i = 0; i < 100; ++i )
+    {
+        std::shared_ptr<Puck> puck = std::shared_ptr<Puck>(new Puck);
+        if ( !puck->init(m_physics, glm::vec3(0.0, 1+i*0.2 ,0.0), 0.1f) )
+            return reportError("Unable to load model");
 
-    // give the model access to material uniform buffer
-    puck->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
+        // give the model access to material uniform buffer
+        puck->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
 
-    // add model to render list
-    m_renderTargets.push_back(std::shared_ptr<iGLRenderable>(puck));
+        // add model to render list
+        m_renderTargets.push_back(std::shared_ptr<iGLRenderable>(puck));
 
-    // add model to physics list
-    m_physicsTargets.push_back(std::shared_ptr<iPhysicsObject>(puck));
+        // add model to physics list
+        m_physicsTargets.push_back(std::shared_ptr<iPhysicsObject>(puck));
+    }
 
     // move the camera back and up
     m_camera.moveStraight(-3.0f);
@@ -259,12 +262,53 @@ void MainApp::initializeGL()
 
     for ( int i = 0; i < LIGHT_ARRAY_SIZE; ++i )
         m_lights.addLight(dark);
+
+#ifdef PHYSICS_DEBUG
+    std::cout << "Loading Debug Program" << std::endl;
+    
+    GLShader vshaderDebug;
+    GLShader fshaderDebug;
+    if ( !vshaderDebug.compileFromFile("./shaders/vshaderDebug.glsl", GL_VERTEX_SHADER) )
+        return reportError(QString::fromUtf8(vshaderDebug.getLastError().c_str()));
+    if ( !fshaderDebug.compileFromFile("./shaders/fshaderDebug.glsl", GL_FRAGMENT_SHADER) )
+        return reportError(QString::fromUtf8(fshaderDebug.getLastError().c_str()));
+
+    m_glProgramDebug.init(); 
+
+    if ( !m_glProgramDebug.attachShader(vshaderDebug) )
+        return reportError(QString::fromUtf8(m_glProgramDebug.getLastError().c_str()));
+    if ( !m_glProgramDebug.attachShader(fshaderDebug) )
+        return reportError(QString::fromUtf8(m_glProgramDebug.getLastError().c_str()));
+    if ( !m_glProgramDebug.link() )
+        return reportError(QString::fromUtf8(m_glProgramDebug.getLastError().c_str()));
+  
+    uMatrices = glGetUniformBlockIndex(m_glProgramDebug.getProgramIdx(), "Matrices");
+    if ( uMatrices == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
+    
+    glUniformBlockBinding(m_glProgramDebug.getProgramIdx(), uMatrices, UB_MATRICES);
+#endif
 }
 
 void MainApp::updatePhysicsObjects()
 {
+#ifdef PHYSICS_DEBUG 
+    // model matrix is always identity
+    const glm::mat4 mvpMatrix = m_projectionMatrix * m_camera.getViewMatrix();
+
+    m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
+    m_glUniformMatrixBuffer.setSubData(&mvpMatrix, MAT_MVP_OFFSET); 
+
+    m_glProgramDebug.use();
+#endif
+
+    // update transform from physics world
     for ( PhysicsList::iterator i = m_physicsTargets.begin(); i != m_physicsTargets.end(); ++i )
         (*i)->updateTransform();
+
+#ifdef PHYSICS_DEBUG
+    GLProgram::resetUsed();
+#endif
 }
 
 void MainApp::paintGL()

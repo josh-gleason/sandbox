@@ -7,10 +7,11 @@
 #include <bullet/btBulletCollisionCommon.h>
 #include <bullet/btBulletDynamicsCommon.h>
 
-const std::string PUCK_MODEL = "models/Puck/Puck.obj";
-const double PUCK_RESTITUTION = 0.95;
-const double PUCK_FRICTION = 0.1;
-const double PUCK_DENSITY = 1.0;
+// default values for puck
+const std::string   PUCK_MODEL        = "models/Puck/Puck.obj";
+const double        PUCK_RESTITUTION  = 0.8;
+const double        PUCK_FRICTION     = 1.0;
+const double        PUCK_DENSITY      = 0.1;
 
 class Puck : public Model, public DynamicCylinder 
 {

@@ -20,10 +20,7 @@ bool Puck::init(const PhysicsWorld& world, const glm::vec3& position, double rad
     // all models get scaled to fit inside 2x2x2 box during init (radius == 1.0)
     m_scale *= radius;
     float fRadius = radius;
-    m_modelMatrix = glm::scale(m_modelMatrix, glm::vec3(fRadius, fRadius, fRadius));
-
-    // this is the matrix to which all rotations and translations are applied
-    m_centerScaleMatrix = m_modelMatrix;
+    m_modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(fRadius, fRadius, fRadius)) * m_modelMatrix;
 
     // set parameters for dynamic cylinder
     InitialParams params;
@@ -36,7 +33,12 @@ bool Puck::init(const PhysicsWorld& world, const glm::vec3& position, double rad
         static_cast<btScalar>(position.x),
         static_cast<btScalar>(position.y),
         static_cast<btScalar>(position.z));
-    params.initialRotation = btQuaternion(0.0, 0.0, 0.0);
+    btQuaternion q;
+    q.setRotation(btVector3(0.0,0.0,1.0),rand()*2.0*M_PI - M_PI);
+    params.initialRotation = q; 
+
+    // this is the matrix to which all rotations and translations are applied
+    m_centerScaleMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,params.height/-2.0,0.0f)) * m_modelMatrix;
 
     // initialize physics
     if ( !initPhysics(world, params) )
@@ -54,9 +56,10 @@ bool Puck::initPhysics(const PhysicsWorld& world, const InitialParams& params)
         return false;
 
     // create constraints
-    m_rigidBody->setActivationState(DISABLE_DEACTIVATION);
-    m_rigidBody->setLinearFactor(btVector3(1,1,0));
-    
+    //m_rigidBody->setActivationState(DISABLE_DEACTIVATION);
+    //m_rigidBody->setLinearFactor(btVector3(1,0,1));
+    //m_rigidBody->setAngularFactor(btVector3(1,1,1));
+#if 0 
     m_constraint = std::shared_ptr<btGeneric6DofConstraint>(new btGeneric6DofConstraint(*m_rigidBody, btTransform::getIdentity(), true));
   
     m_constraint->setLinearLowerLimit(btVector3(1,1,1));
@@ -67,7 +70,16 @@ bool Puck::initPhysics(const PhysicsWorld& world, const InitialParams& params)
 
     // add constraint to world
     m_physicsWorld.addConstraint(m_constraint.get());
-
+#endif 
+    ///////////////////////////// TODO TEMPORARY /////////////////////////////////////
+    // add simple ground
+    btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0,1,0),1);
+    btDefaultMotionState* groundMotionState = new btDefaultMotionState(btTransform(btQuaternion(0,0,0,1),btVector3(0,-1,0)));
+    btRigidBody::btRigidBodyConstructionInfo
+            groundRigidBodyCI(0, groundMotionState, groundShape, btVector3(0,0,0));
+    btRigidBody* groundRigidBody = new btRigidBody(groundRigidBodyCI);
+    m_physicsWorld.addRigidBody(groundRigidBody); 
+    ///////////////////////////// TODO END TEMPORARY /////////////////////////////////
     return true;
 }
 
@@ -91,14 +103,6 @@ void Puck::updateTransform()
         static_cast<GLfloat>(bAxis.z()));
 
     // encorporate translation and rotation of puck
-    m_modelMatrix =
-        glm::translate(
-            glm::rotate(
-                m_centerScaleMatrix,
-                angle,
-                axis
-            ),
-            translation
-        );
+    m_modelMatrix = glm::translate(glm::mat4(1.0),translation) * glm::rotate(glm::mat4(1.0),static_cast<GLfloat>(180.0 * angle / M_PI),axis) * m_centerScaleMatrix;
 }
 
