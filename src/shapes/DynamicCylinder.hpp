@@ -7,6 +7,7 @@
 #include <bullet/LinearMath/btQuaternion.h>
 #include <bullet/LinearMath/btScalar.h>
 #include <bullet/LinearMath/btTransform.h>
+#include <glm/glm.hpp>
 
 class btDefaultMotionState;
 class btCollisionShape;
@@ -33,6 +34,9 @@ class DynamicCylinder : public iPhysicsObject
 
         virtual void updateTransform();
         bool initPhysics(const PhysicsWorld& world, const InitialParams& params);
+
+        // set the velocity of the cylinder (using glm vectors because most things in this program do)
+        void setVelocity(const glm::vec3& velocity);
     protected:
         InitialParams m_cylinderParams;
 

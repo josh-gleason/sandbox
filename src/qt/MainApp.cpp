@@ -235,28 +235,29 @@ void MainApp::initializeGL()
 
     // initialize table
     std::shared_ptr<Table> table = std::shared_ptr<Table>(new Table);
-    if ( !table->init(m_physics, glm::vec3(0.0f, 1.0f, 0.0f)) )
+    if ( !table->init(m_physics, glm::vec3(0.0f, 0.0f, 0.0f)) )
         return reportError("Unable to load table");
-    
     table->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
-
     m_renderTargets.push_back(std::shared_ptr<iGLRenderable>(table));
     m_physicsTargets.push_back(std::shared_ptr<iPhysicsObject>(table));
 
     // initialize puck
     std::shared_ptr<Puck> puck = std::shared_ptr<Puck>(new Puck);
-    if ( !puck->init(m_physics, glm::vec3(0.0f, 3.0f, 0.0f), 0.1f) )
+    if ( !puck->init(m_physics, glm::vec3(0.0f, 0.0f, 0.0f), 0.1f) )
         return reportError("Unable to load puck");
-
     puck->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
-
     m_renderTargets.push_back(std::shared_ptr<iGLRenderable>(puck));
     m_physicsTargets.push_back(std::shared_ptr<iPhysicsObject>(puck));
 
+    // TODO temporary just to show physics works
+    puck->setVelocity(glm::vec3(1.2f,0.0f,2.0f));
+
     // move the camera back and up
-    m_camera.moveStraight(-3.0f);
-    m_camera.moveVert(2.0f);
-    m_camera.rotateVert(-15.0f);
+    m_camera.moveStraight(-2.0f);
+    m_camera.moveHoriz(4.0f);
+    m_camera.moveVert(1.7f);
+    m_camera.rotateVert(-25.0f);
+    m_camera.rotateHoriz(57.0f);
     
     const LightInfo dark({
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -266,6 +267,15 @@ void MainApp::initializeGL()
 
     for ( int i = 0; i < LIGHT_ARRAY_SIZE; ++i )
         m_lights.addLight(dark);
+   
+    // turn light #0 on
+    const glm::vec3 position = m_camera.getTranslation()[3].xyz();
+    const LightInfo lightInfo({
+        position * -1.0f,
+        glm::vec3(1.0f,1.0f,1.0f),
+        glm::vec3(0.4f, 0.4f, 0.4f),
+        glm::vec3(0.0f, 0.0f, 0.0f)});
+    m_lights.setLightInfo(lightInfo, 0);
 
 #ifdef PHYSICS_DEBUG
     std::cout << "Loading Debug Program" << std::endl;

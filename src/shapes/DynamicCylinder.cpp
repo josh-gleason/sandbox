@@ -59,3 +59,9 @@ bool DynamicCylinder::initPhysics(const PhysicsWorld& world, const InitialParams
     return true;
 }
 
+void DynamicCylinder::setVelocity(const glm::vec3 &velocity)
+{
+    m_rigidBody->setLinearVelocity(btVector3(velocity.x, velocity.y, velocity.z));
+}
+
+

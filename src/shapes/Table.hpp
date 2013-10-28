@@ -4,11 +4,11 @@
 #include "Model.hpp"
 #include "StaticMesh.hpp"
 
-const double TABLE_FRICTION = 1.0;
+const double TABLE_FRICTION = 0.1;
 const double TABLE_RESTITUTION = 1.0;
 const double TABLE_LENGTH = 5.0;
-const std::string TABLE_MODEL = "models/AirHockeyTable/Airhockey.obj";
-const std::string TABLE_WALLS = "models/AirHockeyTable/walls/walls2.obj";
+const std::string TABLE_MODEL = "data/models/AirHockeyTable/Airhockey.obj";
+const std::string TABLE_WALLS = "data/models/AirHockeyTable/walls/walls.obj";
 
 class Table : public Model, public StaticMesh
 {
