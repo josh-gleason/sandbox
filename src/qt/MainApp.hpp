@@ -12,6 +12,10 @@
 #include "../bulletwrappers/PhysicsWorld.hpp"
 #include "../shapes/Puck.hpp"
 
+#ifdef PHYSICS_DEBUG
+    #include "../shapes/PhysicsDebug.hpp"
+#endif
+
 #include <QGLWidget>
 #include <QTimer>
 #include <QTime>
@@ -75,6 +79,7 @@ protected:
    
 #ifdef PHYSICS_DEBUG
     GLProgram m_glProgramDebug;
+    std::shared_ptr<PhysicsDebug> m_physicsDebug; 
 #endif
 };
 

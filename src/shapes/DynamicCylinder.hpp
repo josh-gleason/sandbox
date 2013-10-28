@@ -13,13 +13,6 @@ class btCollisionShape;
 class btRigidBody;
 class btGeneric6DofConstraint;
 
-// TODO move this option to somewhere else
-#define PHYSICS_DEBUG 
-
-#ifdef PHYSICS_DEBUG 
-    #include "PhysicsDebug.hpp"
-#endif
-
 class DynamicCylinder : public iPhysicsObject
 {
     public:
@@ -45,10 +38,6 @@ class DynamicCylinder : public iPhysicsObject
 
         PhysicsWorld m_physicsWorld;
         
-#ifdef PHYSICS_DEBUG
-        PhysicsDebug debug;
-#endif
-       
         std::shared_ptr<btDefaultMotionState>    m_motionState;
         std::shared_ptr<btCollisionShape>        m_collisionShape;
         std::shared_ptr<btRigidBody>             m_rigidBody;

@@ -18,14 +18,6 @@ DynamicCylinder::~DynamicCylinder()
 void DynamicCylinder::updateTransform()
 {
     m_transform = m_rigidBody->getCenterOfMassTransform();
-
-#ifdef PHYSICS_DEBUG
-    // draw shape in debug mode
-    btCylinderShape* shape = reinterpret_cast<btCylinderShape*>(m_collisionShape.get());
-    debug.drawCylinder(shape->getRadius(), shape->getHalfExtentsWithMargin().y(), shape->getUpAxis(), m_rigidBody->getCenterOfMassTransform(), btVector3(0.0,0.0,1.0));
-    debug.loadToBuffer();
-    debug.draw(DrawType::DRAW_MATERIAL);
-#endif // PHYSICS_DEBUG
 }
 
 bool DynamicCylinder::initPhysics(const PhysicsWorld& world, const InitialParams& params)

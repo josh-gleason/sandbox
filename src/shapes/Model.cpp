@@ -33,9 +33,9 @@ void Model::centerScaleModel()
                               m_maxVertex.z - m_minVertex.z));
 
     glm::vec3 center = (m_maxVertex + m_minVertex) / 2.0f;
-    glm::vec3 translate = glm::vec3(-center.x, -center.y, -center.z);
+    m_translate = glm::vec3(-center.x, -center.y, -center.z);
 
-    m_modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale,m_scale,m_scale)) * glm::translate(glm::mat4(1.0f),translate);
+    m_modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale,m_scale,m_scale)) * glm::translate(glm::mat4(1.0f),m_translate);
 }
 
 void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
@@ -387,11 +387,30 @@ bool Model::init(const std::string& filename, bool flipUvs)
 {
     m_modelDir = bf::path(filename).remove_filename();
 
-    // load the scene
     Assimp::Importer importer;
+
+    // don't load these components (used with aiProcess_RemoveComponent)
+    importer.SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS,
+            aiComponent_BONEWEIGHTS |
+            aiComponent_ANIMATIONS |
+            aiComponent_LIGHTS |
+            aiComponent_CAMERAS
+    );
+    // don't process points and lines
+    importer.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE,
+            aiPrimitiveType_POINT |
+            aiPrimitiveType_LINE |
+            aiPrimitiveType_POLYGON // should be triangulated but just in case...
+    );
+    
+    // import the model
+    // TODO : debug output write it to log (see aiProcess_ValidateDataStructure flag)
     const aiScene* scene =
-        importer.ReadFile( filename, aiProcessPreset_TargetRealtime_MaxQuality |
-                (flipUvs ? 0 : aiProcess_FlipUVs) );
+        importer.ReadFile( filename,
+                aiProcess_RemoveComponent |
+                aiProcessPreset_TargetRealtime_MaxQuality |
+                (flipUvs ? 0 : aiProcess_FlipUVs)
+        );
 
     if (!scene)
         return false;

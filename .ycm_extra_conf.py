@@ -99,7 +99,8 @@ extraflags = [
 '-D_REENTRANT',
 '-DKDE_DEPRECATED_WARNINGS',
 '-I/usr/share/qt4/mkspecs/default',
-'-I./include'
+'-I./include',
+'-DPHYSICS_DEBUG'
 ]
 
 # The YOU_COMPLETE_ME macro allows the for the following to include glew

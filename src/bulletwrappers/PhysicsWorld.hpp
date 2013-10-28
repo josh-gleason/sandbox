@@ -24,6 +24,8 @@ public:
     void addConstraint(btGeneric6DofConstraint* body);
     void removeConstraint(btGeneric6DofConstraint* constraint);
     void tick(double dt);
+    
+    btDiscreteDynamicsWorld* get() { return m_world.get(); }
 protected:
     std::shared_ptr<btDefaultCollisionConfiguration>     m_configuration;
     std::shared_ptr<btCollisionDispatcher>               m_dispatcher;

@@ -25,7 +25,7 @@ public:
     void reportErrorWarning(const char*) {}
     void draw3dText(const btVector3&,const char*) {}
     void setDebugMode(int) {}
-    int getDebugMode() const { return 0; }
+    int getDebugMode() const { return btIDebugDraw::DBG_DrawWireframe; }
     
     // originals with argument names
     //void drawContactPoint(const btVector3& PointOnB,const btVector3& normalOnB,btScalar distance,int lifeTime,const btVector3& color) {}

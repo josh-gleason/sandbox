@@ -5,6 +5,7 @@
 #include "../glwrappers/GLShader.hpp"
 #include "../glwrappers/GLUniform.hpp"
 #include "../shapes/Puck.hpp"
+#include "../shapes/Table.hpp"
 
 // Qt includes
 #include <QTextStream>
@@ -232,22 +233,25 @@ void MainApp::initializeGL()
     // initialize physics
     m_physics.init();
 
+    // initialize table
+    std::shared_ptr<Table> table = std::shared_ptr<Table>(new Table);
+    if ( !table->init(m_physics, glm::vec3(0.0f, 1.0f, 0.0f)) )
+        return reportError("Unable to load table");
+    
+    table->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
+
+    m_renderTargets.push_back(std::shared_ptr<iGLRenderable>(table));
+    m_physicsTargets.push_back(std::shared_ptr<iPhysicsObject>(table));
+
     // initialize puck
-    for ( int i = 0; i < 100; ++i )
-    {
-        std::shared_ptr<Puck> puck = std::shared_ptr<Puck>(new Puck);
-        if ( !puck->init(m_physics, glm::vec3(0.0, 1+i*0.2 ,0.0), 0.1f) )
-            return reportError("Unable to load model");
+    std::shared_ptr<Puck> puck = std::shared_ptr<Puck>(new Puck);
+    if ( !puck->init(m_physics, glm::vec3(0.0f, 3.0f, 0.0f), 0.1f) )
+        return reportError("Unable to load puck");
 
-        // give the model access to material uniform buffer
-        puck->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
+    puck->setUniforms(m_glUniformMaterialBuffer, MATERIALS);
 
-        // add model to render list
-        m_renderTargets.push_back(std::shared_ptr<iGLRenderable>(puck));
-
-        // add model to physics list
-        m_physicsTargets.push_back(std::shared_ptr<iPhysicsObject>(puck));
-    }
+    m_renderTargets.push_back(std::shared_ptr<iGLRenderable>(puck));
+    m_physicsTargets.push_back(std::shared_ptr<iPhysicsObject>(puck));
 
     // move the camera back and up
     m_camera.moveStraight(-3.0f);
@@ -287,6 +291,10 @@ void MainApp::initializeGL()
         std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
     
     glUniformBlockBinding(m_glProgramDebug.getProgramIdx(), uMatrices, UB_MATRICES);
+  
+    // tell physics world to use debug drawer
+    m_physicsDebug = std::shared_ptr<PhysicsDebug>(new PhysicsDebug);
+    m_physics.get()->setDebugDrawer(m_physicsDebug.get());
 #endif
 }
 
@@ -300,15 +308,16 @@ void MainApp::updatePhysicsObjects()
     m_glUniformMatrixBuffer.setSubData(&mvpMatrix, MAT_MVP_OFFSET); 
 
     m_glProgramDebug.use();
-#endif
+    
+    m_physics.get()->debugDrawWorld();
+    m_physicsDebug->loadToBuffer();
+    m_physicsDebug->draw();
 
-    // update transform from physics world
-    for ( PhysicsList::iterator i = m_physicsTargets.begin(); i != m_physicsTargets.end(); ++i )
-        (*i)->updateTransform();
-
-#ifdef PHYSICS_DEBUG
     GLProgram::resetUsed();
 #endif
+
+    for ( PhysicsList::iterator i = m_physicsTargets.begin(); i != m_physicsTargets.end(); ++i )
+        (*i)->updateTransform();
 }
 
 void MainApp::paintGL()

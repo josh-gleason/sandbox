@@ -2,7 +2,7 @@
 
 #include <glm/ext.hpp>
 
-Puck::Puck() : Model::Model()
+Puck::Puck() : Model::Model(), DynamicCylinder::DynamicCylinder()
 {}
 
 Puck::~Puck()
@@ -37,7 +37,7 @@ bool Puck::init(const PhysicsWorld& world, const glm::vec3& position, double rad
         static_cast<btScalar>(position.y),
         static_cast<btScalar>(position.z));
     btQuaternion q;
-    q.setRotation(btVector3(0.0,0.0,1.0),rand()*2.0*M_PI - M_PI);
+    q.setRotation(btVector3(0.0,0.0,1.0),0.01);
     params.initialRotation = q; 
 
     // initialize physics
@@ -59,6 +59,7 @@ bool Puck::initPhysics(const PhysicsWorld& world, const InitialParams& params)
     //m_rigidBody->setActivationState(DISABLE_DEACTIVATION);
     //m_rigidBody->setLinearFactor(btVector3(1,0,1));
     //m_rigidBody->setAngularFactor(btVector3(1,1,1));
+
 #if 0 
     m_constraint = std::shared_ptr<btGeneric6DofConstraint>(new btGeneric6DofConstraint(*m_rigidBody, btTransform::getIdentity(), true));
   
@@ -70,7 +71,6 @@ bool Puck::initPhysics(const PhysicsWorld& world, const InitialParams& params)
 
     // add constraint to world
     m_physicsWorld.addConstraint(m_constraint.get());
-#endif 
     ///////////////////////////// TODO TEMPORARY /////////////////////////////////////
     // add simple ground
     btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0,1,0),1);
@@ -80,6 +80,7 @@ bool Puck::initPhysics(const PhysicsWorld& world, const InitialParams& params)
     btRigidBody* groundRigidBody = new btRigidBody(groundRigidBodyCI);
     m_physicsWorld.addRigidBody(groundRigidBody); 
     ///////////////////////////// TODO END TEMPORARY /////////////////////////////////
+#endif 
     return true;
 }
 

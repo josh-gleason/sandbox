@@ -82,7 +82,10 @@ protected:
     bool                  m_minMaxInit;
     glm::vec3             m_minVertex;
     glm::vec3             m_maxVertex;
+
+    // saves the amount of scaling and translation done by centerscale
     float                 m_scale;
+    glm::vec3             m_translate;
 
     // the model matrix
     glm::mat4           m_modelMatrix;
