@@ -101,16 +101,14 @@ void MainApp::initializeGL()
     GLenum err = glewInit();
     if ( err != GLEW_OK )
         return reportError(QString::fromUtf8(reinterpret_cast<const char*>(glewGetErrorString(err))));
-  
+ 
+    // set some basic opengl flags
     glEnable(GL_DEPTH_TEST);  // Enables Depth Testing
-    glEnable(GL_DOUBLEBUFFER);
-    //glEnable(GL_BLEND);
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthFunc(GL_LESS);     // The Type Of Depth Test To Do
     glShadeModel(GL_SMOOTH);  // Enables Smooth Color Shading
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-    CHECKERR
-////////////////////////////////////////////// MATERIAL PROGRAM
 
     // initilize shaders
     GLShader vshaderMaterial;
@@ -155,6 +153,7 @@ void MainApp::initializeGL()
     GLuint uMatrices = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Matrices");
     if ( uMatrices == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
+#ifdef DEBUG_MESSAGE
     else
     {
         std::cout << "Matrices Block offsets :: " << std::endl;
@@ -163,10 +162,12 @@ void MainApp::initializeGL()
                   << " normalMatrix : " << MAT_NORMAL_OFFSET << std::endl;
         printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uMatrices);
     }
+#endif
 
     GLuint uLights = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Lights");
     if ( uLights == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Lights" << std::endl;
+#ifdef DEBUG_MESSAGE
     else
     {
         std::cout << "Lights Block offsets :: " << std::endl;
@@ -180,6 +181,7 @@ void MainApp::initializeGL()
         }
         printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uLights);
     }
+#endif
 
     GLuint uMaterial = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Material");
     if ( uMaterial == GL_INVALID_INDEX )
@@ -200,6 +202,7 @@ void MainApp::initializeGL()
     uMaterial = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Material");
     if ( uMaterial == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Material" << std::endl;
+#ifdef DEBUG_MESSAGE
     else
     {
         std::cout << "Material Block offsets :: " << std::endl;
@@ -210,6 +213,7 @@ void MainApp::initializeGL()
                   << " texBlend : " << MATERIAL_TEXBLEND_OFFSET << std::endl;
         printUniformOffsets(m_glProgramTexD.getProgramIdx(), uMaterial);
     }
+#endif
     
     glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uMatrices, UB_MATRICES);
     glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uLights, UB_LIGHT);
@@ -252,7 +256,7 @@ void MainApp::initializeGL()
     m_physicsTargets.push_back(std::shared_ptr<iPhysicsObject>(puck));
 
     // TODO temporary just to show physics works
-    puck->setVelocity(glm::vec3(1.2f,0.0f,2.0f));
+    //puck->setVelocity(glm::vec3(1.2f,0.0f,2.0f));
 
     // move the camera back and up
     m_camera[0].moveStraight(-3.0f);

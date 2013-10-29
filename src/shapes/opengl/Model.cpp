@@ -17,6 +17,12 @@ const aiTextureType AI_TEXTURE_TYPES[] = {aiTextureType_DIFFUSE, aiTextureType_S
 const int TEXTURE_TYPE_COUNT = 1; // Just checking for DIFFUSE textures for now 
 //const int TEXTURE_TYPE_COUNT = sizeof(AI_TEXTURE_TYPES)/sizeof(aiTextureType);
 
+#ifdef DEBUG_MESSAGE
+    #define DEBUG_MSG(a) a
+#else
+    #define DEBUG_MSG(a) //
+#endif
+
 Model::Model() :
     m_minMaxInit(false),
     m_scale(1.0),
@@ -47,11 +53,11 @@ void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
     aiReturn queryResult =
         material.Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texImg);
 
-    std::cout << "Material Index " << materialIdx << std::endl;
+    DEBUG_MSG(std::cout << "Material Index " << materialIdx << std::endl);
 
     if ( queryResult == AI_SUCCESS )
     {
-        std::cout << "Found Diffuse texture" << std::endl;
+        DEBUG_MSG(std::cout << "Found Diffuse texture" << std::endl);
 
         // set draw type to include bit representing diffuse texture
         m_materials[materialIdx].drawType =
@@ -75,8 +81,8 @@ void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
             bf::path texPath = m_modelDir / "Texture" / texImg.C_Str();
             if ( !tex2d.loadImageData(texPath.c_str()) )
             {
-                std::cout << "Unable to load texture \"" << texImg.C_Str()
-                          << "\"" << std::endl;
+                DEBUG_MSG(std::cout << "Unable to load texture \"" << texImg.C_Str()
+                          << "\"" << std::endl);
 
                 // we were wrong, no diffuse texture so disable the bit
                 m_materials[materialIdx].drawType =
@@ -100,9 +106,9 @@ void Model::loadMaterialTextures(int materialIdx, const aiMaterial& material)
     }
     else // no textures
     {
-        std::cout << "Diffuse texture not found with material" << std::endl;
+        DEBUG_MSG(std::cout << "Diffuse texture not found with material" << std::endl);
     }
-    std::cout << "FINAL TEXTURE TYPE : " << m_materials[materialIdx].drawType << std::endl;
+    DEBUG_MSG(std::cout << "FINAL TEXTURE TYPE : " << m_materials[materialIdx].drawType << std::endl);
 
     // reset active texture to default
     glActiveTexture(GL_TEXTURE0);
@@ -301,13 +307,8 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes)
     {
         aiMesh& mesh = *(meshes[i]);
         m_meshInfo[i].name = mesh.mName.C_Str();
-        // TODO I shouldn't really skip everything else
-        if ( mesh.mPrimitiveTypes != aiPrimitiveType_TRIANGLE )
-        {
-            m_meshInfo[i].numElements = 0;
-            continue;
-        }
-        std::cout << "Mesh : " << m_meshInfo[i].name << std::endl;
+        
+        DEBUG_MSG(std::cout << "Mesh : " << m_meshInfo[i].name << std::endl);
 
         if ( m_materials[mesh.mMaterialIndex].drawType != DRAW_MATERIAL )
             bufferCount++; // uv buffer
@@ -322,12 +323,6 @@ void Model::loadMeshes(aiMesh** meshes, unsigned int numMeshes)
     {
         // provide easier access to *(meshes[i])
         aiMesh& mesh = *(meshes[i]);
-        if ( mesh.mPrimitiveTypes != aiPrimitiveType_TRIANGLE )
-            continue;
-        
-        // TODO I shouldn't really skip everything else
-        if ( mesh.mPrimitiveTypes != aiPrimitiveType_TRIANGLE )
-            continue;
         
         bool useTexture = m_materials[mesh.mMaterialIndex].useTexture; 
 

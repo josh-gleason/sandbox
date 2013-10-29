@@ -71,18 +71,18 @@ void main()
     vec4 texD = texture2D(u_diffuseMap, f_uvCoord);
     
     // determine mixing amount based on distance to closest edge
-    float edgeDist = min(min(f_coords.x, f_coords.y), f_coords.z);
-    float a = exp2(-1.0*edgeDist*edgeDist);
-    
+    float d = min(f_coords[0], min(f_coords[1], f_coords[2]));
+    float I = exp2(-2.0*d*d);
+
     // pseudo transparency
-    if ( a <= 0.1 && texD.w <= 0.1 )
+    if ( texD.w <= 0.1 && I <= 0.5 )
         discard;
 
     vec3 finalColor = vec3(0.0, 0.0, 0.0);
     for ( int i = 0; i < lights.count; ++i )
         finalColor = finalColor + computeLighting(i, texD.xyz);
-    vec3 inverse = vec3(1.0, 1.0, 1.0) - clamp(finalColor, 0.0, 1.0);
 
-    out_color = vec4(mix(finalColor, inverse, a), 1.0);
+    out_color.w = 1.0;
+    out_color.xyz = mix(finalColor,vec3(1.0,1.0,1.0),I);
 }
 

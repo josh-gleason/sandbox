@@ -1,0 +1,23 @@
+# Blender MTL File: 'PuckTexture.blend'
+# Material Count: 2
+newmtl Red_Plastic
+Ns 15.686275
+Ka 0.000000 0.000000 0.000000
+Kd 0.337600 0.000000 0.000000
+Ks 0.200787 0.200787 0.200787
+Ni 1.000000
+d 1.000000
+illum 2
+
+
+newmtl TexTop_happy.jpeg
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd happy.jpeg
+
+

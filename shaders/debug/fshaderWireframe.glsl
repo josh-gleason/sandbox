@@ -3,7 +3,7 @@
 // fragment properties
 in vec3 f_normal;
 in vec3 f_position;
-noperspective in vec3 f_coords;
+in vec3 f_coords;
 
 struct LightInfo
 {
@@ -69,9 +69,9 @@ void main()
 
     // determine mixing amount based on distance to closest edge
     float d = min(f_coords[0], min(f_coords[1], f_coords[2]));
-    float I = exp2(-2.0*d* d);
-    
+    float I = exp2(-2.0*d*d);
+
     out_color.w = 1.0;
-    out_color.xyz = I*vec3(1.0,1.0,1.0) + (1.0 - I)*finalColor;
+    out_color.xyz = mix(finalColor,vec3(1.0,1.0,1.0),I);
 }
 

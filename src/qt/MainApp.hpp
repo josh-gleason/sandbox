@@ -20,8 +20,6 @@
 #include <QTimer>
 #include <QTime>
 
-#define GRAPHICS_DEBUG
-
 class QKeyEvent;
 
 class MainApp : public QGLWidget

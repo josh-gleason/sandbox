@@ -9,7 +9,7 @@ in vec3 g_position[3];
 uniform vec2 u_windowSize;
 
 // don't divide by the w value of the position for this attribute
-noperspective out vec3 f_coords;
+out vec3 f_coords;
 
 out vec3 f_normal;
 out vec3 f_position;
@@ -27,9 +27,12 @@ void main()
                      p1.x*(p2.y - p0.y) +
                      p2.x*(p0.y - p1.y)) * 0.5f;
     
-    float d0 = area/length(v0);
-    float d1 = area/length(v1);
-    float d2 = area/length(v2);
+    float d0 = area/length(v0) *
+        (gl_in[0].gl_Position.w > 0.000001 ? gl_in[0].gl_Position.w : 1.0);
+    float d1 = area/length(v1) *
+        (gl_in[1].gl_Position.w > 0.000001 ? gl_in[1].gl_Position.w : 1.0);
+    float d2 = area/length(v2) *
+        (gl_in[2].gl_Position.w > 0.000001 ? gl_in[2].gl_Position.w : 1.0);
 
     f_coords = vec3(d0, 0.0, 0.0);
     f_normal = g_normal[0];

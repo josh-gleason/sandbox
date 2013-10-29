@@ -8,7 +8,7 @@
 #include <bullet/btBulletDynamicsCommon.h>
 
 // default values for puck
-const std::string   PUCK_MODEL        = "data/models/Puck/Puck.obj";
+const std::string   PUCK_MODEL        = "data/models/PuckTexture/PuckTexture.obj";
 const double        PUCK_RESTITUTION  = 0.9;
 const double        PUCK_FRICTION     = 0.1;
 const double        PUCK_DENSITY      = 0.1;
