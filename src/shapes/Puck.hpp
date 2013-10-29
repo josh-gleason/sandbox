@@ -1,8 +1,8 @@
 #ifndef PUCK_HPP
 #define PUCK_HPP
 
-#include "Model.hpp"
-#include "DynamicCylinder.hpp"
+#include "opengl/Model.hpp"
+#include "bullet/DynamicCylinder.hpp"
 
 #include <bullet/btBulletCollisionCommon.h>
 #include <bullet/btBulletDynamicsCommon.h>

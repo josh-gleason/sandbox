@@ -6,8 +6,8 @@
 QT += opengl
 
 QMAKE_CC = clang
-QMAKE_CXX = g++
-#QMAKE_CXX = clang++
+#QMAKE_CXX = g++
+QMAKE_CXX = clang++
 QMAKE_CXXFLAGS = -std=c++11
 QMAKE_CXXFLAGS += -DPHYSICS_DEBUG
 TEMPLATE = app
@@ -29,14 +29,22 @@ CONFIG += copy_dir_files
 
 # Input
 SOURCES += ../src/shapes/*.cpp
+SOURCES += ../src/shapes/opengl/*.cpp
+SOURCES += ../src/shapes/bullet/*.cpp
+SOURCES += ../src/debug/*.cpp
 SOURCES += ../src/objects/*.cpp
 SOURCES += ../src/glwrappers/*.cpp
 SOURCES += ../src/bulletwrappers/*.cpp
 SOURCES += ../src/qt/*.cpp
 SOURCES += ../src/main.cpp
+
 HEADERS += ../src/shapes/*.hpp
+HEADERS += ../src/shapes/opengl/*.hpp
+HEADERS += ../src/shapes/bullet/*.hpp
+HEADERS += ../src/debug/*.hpp
 HEADERS += ../src/objects/*.hpp
 HEADERS += ../src/glwrappers/*.hpp
 HEADERS += ../src/bulletwrappers/*.hpp
 HEADERS += ../src/qt/*.hpp
+HEADERS += ../src/interfaces/*.hpp
 

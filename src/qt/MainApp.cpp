@@ -72,10 +72,12 @@ void printUniformOffsets(GLuint program, GLuint uniformBlock)
 MainApp::MainApp(QWidget *parent) :
     QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer), parent),
     m_good(true),
-    m_camera(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_Y_LOCK_VERT),
+    m_camera{Camera(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_Y_LOCK_VERT),
+             Camera(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), CameraMode::CAMERA_Y_LOCK_VERT)},
     m_keyFlags(0),
     m_ignoreNextMovement(false),
-    m_mouseEnable(false)
+    m_mouseEnable(false),
+    m_cameraSelect(0)
 {
     this->setCursor(QCursor(Qt::CrossCursor));
     connect(&m_timer,SIGNAL(timeout()),this,SLOT(timerTick()));
@@ -253,11 +255,18 @@ void MainApp::initializeGL()
     puck->setVelocity(glm::vec3(1.2f,0.0f,2.0f));
 
     // move the camera back and up
-    m_camera.moveStraight(-2.0f);
-    m_camera.moveHoriz(4.0f);
-    m_camera.moveVert(1.7f);
-    m_camera.rotateVert(-25.0f);
-    m_camera.rotateHoriz(57.0f);
+    m_camera[0].moveStraight(-3.0f);
+    m_camera[0].moveHoriz(5.0f);
+    m_camera[0].moveVert(2.0f);
+    m_camera[0].rotateVert(-25.0f);
+    m_camera[0].rotateHoriz(57.0f);
+   
+    m_camera[1].rotateHoriz(180.0);
+    m_camera[1].moveStraight(-3.0f);
+    m_camera[1].moveHoriz(5.0f);
+    m_camera[1].moveVert(2.0f);
+    m_camera[1].rotateVert(-25.0f);
+    m_camera[1].rotateHoriz(57.0f);
     
     const LightInfo dark({
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -268,23 +277,115 @@ void MainApp::initializeGL()
     for ( int i = 0; i < LIGHT_ARRAY_SIZE; ++i )
         m_lights.addLight(dark);
    
-    // turn light #0 on
-    const glm::vec3 position = m_camera.getTranslation()[3].xyz();
-    const LightInfo lightInfo({
-        position * -1.0f,
+    // turn light #0 on player 1s position
+    const glm::vec3 position0 = m_camera[0].getTranslation()[3].xyz();
+    const LightInfo lightInfo0({
+        position0 * -1.0f,
         glm::vec3(1.0f,1.0f,1.0f),
         glm::vec3(0.4f, 0.4f, 0.4f),
         glm::vec3(0.0f, 0.0f, 0.0f)});
-    m_lights.setLightInfo(lightInfo, 0);
+    m_lights.setLightInfo(lightInfo0, 0);
+    
+    // turn light #1 on player 1s position
+    const glm::vec3 position1 = m_camera[1].getTranslation()[3].xyz();
+    const LightInfo lightInfo1({
+        position1 * -1.0f,
+        glm::vec3(1.0f,1.0f,1.0f),
+        glm::vec3(0.4f, 0.4f, 0.4f),
+        glm::vec3(0.0f, 0.0f, 0.0f)});
+    m_lights.setLightInfo(lightInfo1, 1);
+
+#ifdef GRAPHICS_DEBUG
+    std::cout << "Loading Wireframe Debug Program" << std::endl;
+
+    GLShader vshaderWireframe;
+    GLShader gshaderWireframe;
+    GLShader fshaderWireframe;
+    GLShader vshaderTexDWireframe;
+    GLShader gshaderTexDWireframe;
+    GLShader fshaderTexDWireframe;
+    
+    m_glProgramWireframe.init();
+    m_glProgramTexDWireframe.init();
+
+    // compile shaders
+    if ( !vshaderWireframe.compileFromFile("./shaders/debug/vshaderWireframe.glsl", GL_VERTEX_SHADER) )
+        return reportError(QString::fromUtf8(vshaderWireframe.getLastError().c_str()));
+    if ( !gshaderWireframe.compileFromFile("./shaders/debug/gshaderWireframe.glsl", GL_GEOMETRY_SHADER) )
+        return reportError(QString::fromUtf8(gshaderWireframe.getLastError().c_str()));
+    if ( !fshaderWireframe.compileFromFile("./shaders/debug/fshaderWireframe.glsl", GL_FRAGMENT_SHADER) )
+        return reportError(QString::fromUtf8(fshaderWireframe.getLastError().c_str()));
+    if ( !vshaderTexDWireframe.compileFromFile("./shaders/debug/vshaderTexDWireframe.glsl", GL_VERTEX_SHADER) )
+        return reportError(QString::fromUtf8(vshaderTexDWireframe.getLastError().c_str()));
+    if ( !gshaderTexDWireframe.compileFromFile("./shaders/debug/gshaderTexDWireframe.glsl", GL_GEOMETRY_SHADER) )
+        return reportError(QString::fromUtf8(gshaderTexDWireframe.getLastError().c_str()));
+    if ( !fshaderTexDWireframe.compileFromFile("./shaders/debug/fshaderTexDWireframe.glsl", GL_FRAGMENT_SHADER) )
+        return reportError(QString::fromUtf8(fshaderTexDWireframe.getLastError().c_str()));
+
+    // attach shaders
+    if ( !m_glProgramWireframe.attachShader(vshaderWireframe) )
+        return reportError(QString::fromUtf8(m_glProgramWireframe.getLastError().c_str()));
+    if ( !m_glProgramWireframe.attachShader(gshaderWireframe) )
+        return reportError(QString::fromUtf8(m_glProgramWireframe.getLastError().c_str()));
+    if ( !m_glProgramWireframe.attachShader(fshaderWireframe) )
+        return reportError(QString::fromUtf8(m_glProgramWireframe.getLastError().c_str()));
+    if ( !m_glProgramTexDWireframe.attachShader(vshaderTexDWireframe) )
+        return reportError(QString::fromUtf8(m_glProgramTexDWireframe.getLastError().c_str()));
+    if ( !m_glProgramTexDWireframe.attachShader(gshaderTexDWireframe) )
+        return reportError(QString::fromUtf8(m_glProgramTexDWireframe.getLastError().c_str()));
+    if ( !m_glProgramTexDWireframe.attachShader(fshaderTexDWireframe) )
+        return reportError(QString::fromUtf8(m_glProgramTexDWireframe.getLastError().c_str()));
+    
+    // link programs
+    if ( !m_glProgramWireframe.link() )
+        return reportError(QString::fromUtf8(m_glProgramWireframe.getLastError().c_str()));
+    if ( !m_glProgramTexDWireframe.link() )
+        return reportError(QString::fromUtf8(m_glProgramTexDWireframe.getLastError().c_str()));
+
+    // get and bind uniform block locations
+    uMatrices = glGetUniformBlockIndex(m_glProgramWireframe.getProgramIdx(), "Matrices");
+    if ( uMatrices == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
+    uLights = glGetUniformBlockIndex(m_glProgramWireframe.getProgramIdx(), "Lights");
+    if ( uLights == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Lights" << std::endl;
+    uMaterial = glGetUniformBlockIndex(m_glProgramWireframe.getProgramIdx(), "Material");
+    if ( uMaterial == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Material" << std::endl;
+    
+    glUniformBlockBinding(m_glProgramWireframe.getProgramIdx(), uMatrices, UB_MATRICES);
+    glUniformBlockBinding(m_glProgramWireframe.getProgramIdx(), uLights, UB_LIGHT);
+    glUniformBlockBinding(m_glProgramWireframe.getProgramIdx(), uMaterial, UB_MATERIAL);
+
+    uMatrices = glGetUniformBlockIndex(m_glProgramTexDWireframe.getProgramIdx(), "Matrices");
+    if ( uMatrices == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
+    uLights = glGetUniformBlockIndex(m_glProgramTexDWireframe.getProgramIdx(), "Lights");
+    if ( uLights == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Lights" << std::endl;
+    uMaterial = glGetUniformBlockIndex(m_glProgramTexDWireframe.getProgramIdx(), "Material");
+    if ( uMaterial == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Material" << std::endl;
+    
+    glUniformBlockBinding(m_glProgramTexDWireframe.getProgramIdx(), uMatrices, UB_MATRICES);
+    glUniformBlockBinding(m_glProgramTexDWireframe.getProgramIdx(), uLights, UB_LIGHT);
+    glUniformBlockBinding(m_glProgramTexDWireframe.getProgramIdx(), uMaterial, UB_MATERIAL);
+
+    // set texture to sample from GL_TEXTURE0
+    GLUniform diffuseMapWireframe;
+    diffuseMapWireframe.init(m_glProgramTexDWireframe, "u_diffuseMap", INT);
+    diffuseMapWireframe.loadData(0);
+    diffuseMapWireframe.set();
+#endif
 
 #ifdef PHYSICS_DEBUG
-    std::cout << "Loading Debug Program" << std::endl;
+    std::cout << "Loading Physics Debug OpenGL Program" << std::endl;
     
     GLShader vshaderDebug;
     GLShader fshaderDebug;
-    if ( !vshaderDebug.compileFromFile("./shaders/vshaderDebug.glsl", GL_VERTEX_SHADER) )
+    if ( !vshaderDebug.compileFromFile("./shaders/debug/vshaderPassthrough.glsl", GL_VERTEX_SHADER) )
         return reportError(QString::fromUtf8(vshaderDebug.getLastError().c_str()));
-    if ( !fshaderDebug.compileFromFile("./shaders/fshaderDebug.glsl", GL_FRAGMENT_SHADER) )
+    if ( !fshaderDebug.compileFromFile("./shaders/debug/fshaderPassthrough.glsl", GL_FRAGMENT_SHADER) )
         return reportError(QString::fromUtf8(fshaderDebug.getLastError().c_str()));
 
     m_glProgramDebug.init(); 
@@ -311,8 +412,13 @@ void MainApp::initializeGL()
 void MainApp::updatePhysicsObjects()
 {
 #ifdef PHYSICS_DEBUG 
+    static int player = 0;
+
     // model matrix is always identity
-    const glm::mat4 mvpMatrix = m_projectionMatrix * m_camera.getViewMatrix();
+    const glm::mat4 mvpMatrix = m_projectionMatrix * m_camera[player].getViewMatrix();
+
+    // every other time this is called it toggles between players
+    player = (player + 1)%2;
 
     m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
     m_glUniformMatrixBuffer.setSubData(&mvpMatrix, MAT_MVP_OFFSET); 
@@ -334,49 +440,63 @@ void MainApp::paintGL()
 {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    for ( int screenIdx = 0; screenIdx < 2; ++screenIdx )
+    {
+        // enable only half the screen
+        glViewport(screenIdx * this->width()/2.0, 0.0, this->width()/2.0, this->height());
     
-    // get the view matrix
-    const glm::mat4 &viewMatrix = m_camera.getViewMatrix();
+        // get the view matrix
+        const glm::mat4 &viewMatrix = m_camera[screenIdx].getViewMatrix();
    
-    // set lights
-    m_lights.load(m_glUniformLightsBuffer, 0, viewMatrix);
+        // set lights
+        m_lights.load(m_glUniformLightsBuffer, 0, viewMatrix);
 
-    // update physics objects
-    this->updatePhysicsObjects();
+        // update physics objects
+        this->updatePhysicsObjects();
 
-    // Render non-textured targets
-    m_glProgramMaterial.use();
-    for ( RenderList::iterator i = m_renderTargets.begin(); i != m_renderTargets.end(); ++i )
-    {
-        // set model uniforms
-        const glm::mat4& modelMatrix = (*i)->getModelMatrix();
-        const glm::mat4  modelViewMatrix = viewMatrix * modelMatrix;
-        const glm::mat4  mvpMatrix = m_projectionMatrix * modelViewMatrix;
-        const glm::mat4  normalMatrix = glm::transpose(glm::inverse(modelViewMatrix));
+        // Render non-textured targets
+#ifdef GRAPHICS_DEBUG
+        m_glProgramWireframe.use();
+#else
+        m_glProgramMaterial.use();
+#endif
+        for ( RenderList::iterator i = m_renderTargets.begin(); i != m_renderTargets.end(); ++i )
+        {
+            // set model uniforms
+            const glm::mat4& modelMatrix = (*i)->getModelMatrix();
+            const glm::mat4  modelViewMatrix = viewMatrix * modelMatrix;
+            const glm::mat4  mvpMatrix = m_projectionMatrix * modelViewMatrix;
+            const glm::mat4  normalMatrix = glm::transpose(glm::inverse(modelViewMatrix));
 
-        m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
-        m_glUniformMatrixBuffer.setSubData(&mvpMatrix, MAT_MVP_OFFSET); 
-        m_glUniformMatrixBuffer.setSubData(&modelViewMatrix, MAT_MV_OFFSET); 
-        m_glUniformMatrixBuffer.setSubData(&normalMatrix, MAT_NORMAL_OFFSET); 
+            m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
+            m_glUniformMatrixBuffer.setSubData(&mvpMatrix, MAT_MVP_OFFSET); 
+            m_glUniformMatrixBuffer.setSubData(&modelViewMatrix, MAT_MV_OFFSET); 
+            m_glUniformMatrixBuffer.setSubData(&normalMatrix, MAT_NORMAL_OFFSET); 
 
-        (*i)->draw(DRAW_MATERIAL);
-    }
+            (*i)->draw(DRAW_MATERIAL);
+        }
 
-    m_glProgramTexD.use();
-    for ( RenderList::iterator i = m_renderTargets.begin(); i != m_renderTargets.end(); ++i )
-    {
-        // set model uniforms
-        const glm::mat4& modelMatrix = (*i)->getModelMatrix();
-        const glm::mat4  modelViewMatrix = viewMatrix * modelMatrix;
-        const glm::mat4  mvpMatrix = m_projectionMatrix * modelViewMatrix;
-        const glm::mat4  normalMatrix = glm::transpose(glm::inverse(modelViewMatrix));
+#ifdef GRAPHICS_DEBUG
+        m_glProgramTexDWireframe.use();
+#else
+        m_glProgramTexD.use();
+#endif
+        for ( RenderList::iterator i = m_renderTargets.begin(); i != m_renderTargets.end(); ++i )
+        {
+            // set model uniforms
+            const glm::mat4& modelMatrix = (*i)->getModelMatrix();
+            const glm::mat4  modelViewMatrix = viewMatrix * modelMatrix;
+            const glm::mat4  mvpMatrix = m_projectionMatrix * modelViewMatrix;
+            const glm::mat4  normalMatrix = glm::transpose(glm::inverse(modelViewMatrix));
 
-        m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
-        m_glUniformMatrixBuffer.setSubData(&mvpMatrix, MAT_MVP_OFFSET); 
-        m_glUniformMatrixBuffer.setSubData(&modelViewMatrix, MAT_MV_OFFSET); 
-        m_glUniformMatrixBuffer.setSubData(&normalMatrix, MAT_NORMAL_OFFSET); 
+            m_glUniformMatrixBuffer.bind(GL_UNIFORM_BUFFER);
+            m_glUniformMatrixBuffer.setSubData(&mvpMatrix, MAT_MVP_OFFSET); 
+            m_glUniformMatrixBuffer.setSubData(&modelViewMatrix, MAT_MV_OFFSET); 
+            m_glUniformMatrixBuffer.setSubData(&normalMatrix, MAT_NORMAL_OFFSET); 
 
-        (*i)->draw(DRAW_TEXTURE_D);
+            (*i)->draw(DRAW_TEXTURE_D);
+        }
     }
 
     GLProgram::resetUsed();
@@ -386,7 +506,7 @@ void MainApp::keyPressEvent(QKeyEvent *event)
 {
     if ( event->isAutoRepeat() ) return;
     
-    const glm::vec3 position = m_camera.getTranslation()[3].xyz();
+    const glm::vec3 position = m_camera[m_cameraSelect].getTranslation()[3].xyz();
     const LightInfo light({
         position * -1.0f,
         glm::vec3(1.0f,1.0f,1.0f),
@@ -483,8 +603,8 @@ void MainApp::mouseMoveEvent(QMouseEvent * event)
     GLfloat thetaVert = 2 * (m_cursorPosition.y() - event->globalY()) * (FOV_DEG / this->height());
     GLfloat thetaHoriz = 2 * (m_cursorPosition.x() - event->globalX()) * (FOV_DEG / this->width());
 
-    m_camera.rotateVert(thetaVert);
-    m_camera.rotateHoriz(thetaHoriz);
+    m_camera[m_cameraSelect].rotateVert(thetaVert);
+    m_camera[m_cameraSelect].rotateHoriz(thetaHoriz);
 
     QCursor::setPos(m_cursorPosition);
 
@@ -493,14 +613,19 @@ void MainApp::mouseMoveEvent(QMouseEvent * event)
 
 void MainApp::resizeGL(int width, int height)
 {
-    m_projectionMatrix = glm::perspective(FOV_DEG, float(width)/float(height), FIELD_NEAR, FIELD_FAR); 
-    glViewport(0, 0, width, height);
+    m_projectionMatrix = glm::perspective(FOV_DEG, float(width/2.0)/float(height), FIELD_NEAR, FIELD_FAR); 
 }
 
 void MainApp::mousePressEvent(QMouseEvent * event)
 {
     if ( (event->buttons() & Qt::LeftButton) != 0 )
     {
+        // select camera where mouse was clicked
+        if (event->posF().x() > this->width()/2.0)
+            m_cameraSelect = 1;
+        else
+            m_cameraSelect = 0;
+
         m_mouseEnable = true;
         m_cursorPosition = event->globalPos();
         this->setCursor(Qt::BlankCursor);
@@ -525,21 +650,21 @@ void MainApp::timerTick()
     
     // update camera
     if ( (m_keyFlags & MOVE_FORWARD) )
-        m_camera.moveStraight(0.02f);
+        m_camera[m_cameraSelect].moveStraight(0.02f);
     if ( (m_keyFlags & MOVE_BACKWARD) )
-        m_camera.moveStraight(-0.02f);
+        m_camera[m_cameraSelect].moveStraight(-0.02f);
     if ( (m_keyFlags & MOVE_LEFT) )
-        m_camera.moveHoriz(-0.02f);
+        m_camera[m_cameraSelect].moveHoriz(-0.02f);
     if ( (m_keyFlags & MOVE_RIGHT) )
-        m_camera.moveHoriz(0.02f);
+        m_camera[m_cameraSelect].moveHoriz(0.02f);
     if ( (m_keyFlags & MOVE_UP) )
-        m_camera.moveVert(0.02f);
+        m_camera[m_cameraSelect].moveVert(0.02f);
     if ( (m_keyFlags & MOVE_DOWN) )
-        m_camera.moveVert(-0.02f);
+        m_camera[m_cameraSelect].moveVert(-0.02f);
     if ( (m_keyFlags & ROTATE_CCW) )
-        m_camera.rotateStraight(1.f);
+        m_camera[m_cameraSelect].rotateStraight(1.f);
     if ( (m_keyFlags & ROTATE_CW) )
-        m_camera.rotateStraight(-1.f);
+        m_camera[m_cameraSelect].rotateStraight(-1.f);
 
     this->repaint();
 }

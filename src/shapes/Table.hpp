@@ -1,8 +1,8 @@
 #ifndef TABLE_HPP
 #define TABLE_HPP
 
-#include "Model.hpp"
-#include "StaticMesh.hpp"
+#include "opengl/Model.hpp"
+#include "bullet/StaticMesh.hpp"
 
 const double TABLE_FRICTION = 0.1;
 const double TABLE_RESTITUTION = 1.0;

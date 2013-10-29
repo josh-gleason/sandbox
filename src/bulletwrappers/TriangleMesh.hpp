@@ -11,7 +11,7 @@
 class btCollisionShape;
 class btTriangleIndexVertexArray;
 struct btIndexedMesh;
-class aiMesh;
+struct aiMesh;
 
 class TriangleMesh
 {

@@ -1,13 +1,13 @@
 #ifndef MODEL_HPP
 #define MODEL_HPP
 
-#include "../interfaces/iGLRenderable.hpp"
+#include "../../interfaces/iGLRenderable.hpp"
 
-#include "../glwrappers/GLAttribute.hpp"
-#include "../glwrappers/GLUniform.hpp"
-#include "../glwrappers/GLVertexArray.hpp"
-#include "../glwrappers/GLBuffer.hpp"
-#include "../glwrappers/GLTexture.hpp"
+#include "../../glwrappers/GLAttribute.hpp"
+#include "../../glwrappers/GLUniform.hpp"
+#include "../../glwrappers/GLVertexArray.hpp"
+#include "../../glwrappers/GLBuffer.hpp"
+#include "../../glwrappers/GLTexture.hpp"
 
 #include <boost/filesystem.hpp>
 #include <assimp/scene.h>

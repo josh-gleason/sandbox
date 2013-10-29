@@ -13,12 +13,14 @@
 #include "../shapes/Puck.hpp"
 
 #ifdef PHYSICS_DEBUG
-    #include "../shapes/PhysicsDebug.hpp"
+    #include "../debug/PhysicsDebug.hpp"
 #endif
 
 #include <QGLWidget>
 #include <QTimer>
 #include <QTime>
+
+#define GRAPHICS_DEBUG
 
 class QKeyEvent;
 
@@ -61,7 +63,7 @@ protected:
     GLBuffer               m_glUniformMaterialBuffer;
 
     glm::mat4              m_projectionMatrix;
-    Camera                 m_camera;    // stores/manipulates view matrix
+    Camera                 m_camera[2];    // stores/manipulates view matrix
 
     Lights                 m_lights;
 
@@ -77,6 +79,13 @@ protected:
     
     PhysicsWorld           m_physics;
    
+    int                    m_cameraSelect;
+
+#ifdef GRAPHICS_DEBUG
+    GLProgram m_glProgramTexDWireframe;
+    GLProgram m_glProgramWireframe;
+#endif
+
 #ifdef PHYSICS_DEBUG
     GLProgram m_glProgramDebug;
     std::shared_ptr<PhysicsDebug> m_physicsDebug; 

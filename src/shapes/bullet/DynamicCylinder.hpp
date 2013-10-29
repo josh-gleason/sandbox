@@ -1,8 +1,8 @@
 #ifndef DYNAMICCYLINDER_HPP
 #define DYNAMICCYLINDER_HPP
 
-#include "../interfaces/iPhysicsObject.hpp"
-#include "../bulletwrappers/PhysicsWorld.hpp"
+#include "../../interfaces/iPhysicsObject.hpp"
+#include "../../bulletwrappers/PhysicsWorld.hpp"
 #include <bullet/LinearMath/btVector3.h>
 #include <bullet/LinearMath/btQuaternion.h>
 #include <bullet/LinearMath/btScalar.h>

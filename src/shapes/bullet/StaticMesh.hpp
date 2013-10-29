@@ -1,16 +1,16 @@
 #ifndef STATICMESH_HPP
 #define STATICMESH_HPP
 
-#include "../interfaces/iPhysicsObject.hpp"
-#include "../bulletwrappers/TriangleMesh.hpp"
-#include "../bulletwrappers/PhysicsWorld.hpp"
+#include "../../interfaces/iPhysicsObject.hpp"
+#include "../../bulletwrappers/TriangleMesh.hpp"
+#include "../../bulletwrappers/PhysicsWorld.hpp"
 
 #include <bullet/LinearMath/btQuaternion.h>
 #include <bullet/LinearMath/btVector3.h>
 
 #include <memory>
 
-class btDefaultMotionState;
+struct btDefaultMotionState;
 class btCollisionShape;
 
 class StaticMesh : public iPhysicsObject
@@ -40,8 +40,6 @@ protected:
     TriangleMesh                          m_mesh;
     std::shared_ptr<btDefaultMotionState> m_motionState;
     std::shared_ptr<btRigidBody>          m_rigidBody;
-    
-    PHYSICS_DEBUG_DEFINE(PhysicsDebug debug);
 };
 
 #endif // STATICMESH_HPP
