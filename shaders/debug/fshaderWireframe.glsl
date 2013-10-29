@@ -68,10 +68,10 @@ void main()
         finalColor = finalColor + computeLighting(i);
 
     // determine mixing amount based on distance to closest edge
-    float edgeDist = min(min(f_coords.x, f_coords.y), f_coords.z);
-    float a = exp2(-2000.0*edgeDist*edgeDist);
-    vec3 inverse = vec3(1.0, 1.0, 1.0) - clamp(finalColor, 0.0, 1.0);
-
-    out_color = vec4(mix(finalColor, inverse, a), 1.0);
+    float d = min(f_coords[0], min(f_coords[1], f_coords[2]));
+    float I = exp2(-2.0*d* d);
+    
+    out_color.w = 1.0;
+    out_color.xyz = I*vec3(1.0,1.0,1.0) + (1.0 - I)*finalColor;
 }
 

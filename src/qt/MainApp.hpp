@@ -84,6 +84,9 @@ protected:
 #ifdef GRAPHICS_DEBUG
     GLProgram m_glProgramTexDWireframe;
     GLProgram m_glProgramWireframe;
+    
+    GLUniform m_winSizeWireframe;
+    GLUniform m_winSizeTexDWireframe;
 #endif
 
 #ifdef PHYSICS_DEBUG

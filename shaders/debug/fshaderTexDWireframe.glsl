@@ -4,7 +4,7 @@
 in vec3 f_normal;
 in vec3 f_position;
 in vec2 f_uvCoord;
-in vec3 f_coords;
+noperspective in vec3 f_coords;
 
 struct LightInfo
 {

@@ -371,6 +371,14 @@ void MainApp::initializeGL()
     glUniformBlockBinding(m_glProgramTexDWireframe.getProgramIdx(), uLights, UB_LIGHT);
     glUniformBlockBinding(m_glProgramTexDWireframe.getProgramIdx(), uMaterial, UB_MATERIAL);
 
+    // find window size uniform for the wireframe 
+    m_winSizeWireframe.init(m_glProgramWireframe, "u_windowSize", VEC2F);
+    m_winSizeWireframe.loadData(glm::vec2(this->width()/4.0f, this->height()/2.0f));
+    m_winSizeWireframe.set();
+    m_winSizeTexDWireframe.init(m_glProgramTexDWireframe, "u_windowSize", VEC2F);
+    m_winSizeTexDWireframe.loadData(glm::vec2(this->width()/4.0f, this->height()/2.0f));
+    m_winSizeTexDWireframe.set();
+
     // set texture to sample from GL_TEXTURE0
     GLUniform diffuseMapWireframe;
     diffuseMapWireframe.init(m_glProgramTexDWireframe, "u_diffuseMap", INT);
@@ -458,6 +466,8 @@ void MainApp::paintGL()
         // Render non-textured targets
 #ifdef GRAPHICS_DEBUG
         m_glProgramWireframe.use();
+        m_winSizeWireframe.loadData(glm::vec2(this->width()/4.0f, this->height()/2.0f));
+        m_winSizeWireframe.set();
 #else
         m_glProgramMaterial.use();
 #endif
@@ -479,6 +489,8 @@ void MainApp::paintGL()
 
 #ifdef GRAPHICS_DEBUG
         m_glProgramTexDWireframe.use();
+        m_winSizeTexDWireframe.loadData(glm::vec2(this->width()/4.0f, this->height()/2.0f));
+        m_winSizeTexDWireframe.set();
 #else
         m_glProgramTexD.use();
 #endif
