@@ -35,7 +35,7 @@ uniform sampler2D u_diffuseMap;
 // output color
 out vec4 out_color;
 
-vec3 computeLighting(int idx, vec3 texD)
+vec3 computeLighting(int idx, vec4 texD)
 {
     //vec3 N = normalize(tbn * (texture2D(u_bumpMap, f_uvCoord) * 2.0 - 1.0).xyz);
     vec3 V = normalize(-f_position);
@@ -44,7 +44,7 @@ vec3 computeLighting(int idx, vec3 texD)
     vec3 H = normalize(L + V);
 
     // blend texture with diffuse color
-    vec3 kd = mix(material.diffuse, texD.xyz, material.texBlend);
+    vec3 kd = mix(material.diffuse, texD.xyz, material.texBlend * texD.w);
     vec3 ks = material.specular;
     vec3 ka = max(material.ambient, 0.3);
     float a = material.shininess;
@@ -68,13 +68,10 @@ vec3 computeLighting(int idx, vec3 texD)
 void main()
 {
     vec4 texD = texture2D(u_diffuseMap, f_uvCoord);
-    // pseudo transparency
-    if ( texD.w <= 0.1 )
-        discard;
 
     vec3 finalColor = vec3(0.0, 0.0, 0.0);
     for ( int i = 0; i < lights.count; ++i )
-        finalColor = finalColor + computeLighting(i, texD.xyz);
+        finalColor = finalColor + computeLighting(i, texD);
     out_color = vec4(finalColor, 1.0);
 }
 

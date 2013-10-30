@@ -87,6 +87,11 @@ protected:
     GLUniform m_winSizeTexDWireframe;
 #endif
 
+#ifdef NORMALS_DEBUG
+    GLProgram m_glProgramNormals;
+    GLUniform m_uniformProjection;
+#endif
+
 #ifdef PHYSICS_DEBUG
     GLProgram m_glProgramDebug;
     std::shared_ptr<PhysicsDebug> m_physicsDebug; 

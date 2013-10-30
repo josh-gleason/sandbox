@@ -17,7 +17,7 @@ const aiTextureType AI_TEXTURE_TYPES[] = {aiTextureType_DIFFUSE, aiTextureType_S
 const int TEXTURE_TYPE_COUNT = 1; // Just checking for DIFFUSE textures for now 
 //const int TEXTURE_TYPE_COUNT = sizeof(AI_TEXTURE_TYPES)/sizeof(aiTextureType);
 
-#ifdef DEBUG_MESSAGE
+#ifdef MESSAGES_DEBUG
     #define DEBUG_MSG(a) a
 #else
     #define DEBUG_MSG(a) //

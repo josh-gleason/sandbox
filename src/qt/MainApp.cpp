@@ -153,7 +153,7 @@ void MainApp::initializeGL()
     GLuint uMatrices = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Matrices");
     if ( uMatrices == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
-#ifdef DEBUG_MESSAGE
+#ifdef MESSAGES_DEBUG
     else
     {
         std::cout << "Matrices Block offsets :: " << std::endl;
@@ -167,7 +167,7 @@ void MainApp::initializeGL()
     GLuint uLights = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Lights");
     if ( uLights == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Lights" << std::endl;
-#ifdef DEBUG_MESSAGE
+#ifdef MESSAGES_DEBUG
     else
     {
         std::cout << "Lights Block offsets :: " << std::endl;
@@ -202,7 +202,7 @@ void MainApp::initializeGL()
     uMaterial = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Material");
     if ( uMaterial == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Material" << std::endl;
-#ifdef DEBUG_MESSAGE
+#ifdef MESSAGES_DEBUG
     else
     {
         std::cout << "Material Block offsets :: " << std::endl;
@@ -390,6 +390,44 @@ void MainApp::initializeGL()
     diffuseMapWireframe.set();
 #endif
 
+#ifdef NORMALS_DEBUG
+    GLShader vshaderNormals;
+    GLShader gshaderNormals;
+    GLShader fshaderNormals;
+
+    m_glProgramNormals.init();
+
+    // compile shaders
+    if ( !vshaderNormals.compileFromFile("./shaders/debug/vshaderNormals.glsl", GL_VERTEX_SHADER) )
+        return reportError(QString::fromUtf8(vshaderNormals.getLastError().c_str()));
+    if ( !gshaderNormals.compileFromFile("./shaders/debug/gshaderNormals.glsl", GL_GEOMETRY_SHADER) )
+        return reportError(QString::fromUtf8(gshaderNormals.getLastError().c_str()));
+    if ( !fshaderNormals.compileFromFile("./shaders/debug/fshaderNormals.glsl", GL_FRAGMENT_SHADER) )
+        return reportError(QString::fromUtf8(fshaderNormals.getLastError().c_str()));
+
+    // attach shaders
+    if ( !m_glProgramNormals.attachShader(vshaderNormals) )
+        return reportError(QString::fromUtf8(m_glProgramNormals.getLastError().c_str()));
+    if ( !m_glProgramNormals.attachShader(gshaderNormals) )
+        return reportError(QString::fromUtf8(m_glProgramNormals.getLastError().c_str()));
+    if ( !m_glProgramNormals.attachShader(fshaderNormals) )
+        return reportError(QString::fromUtf8(m_glProgramNormals.getLastError().c_str()));
+    
+    // link program
+    if ( !m_glProgramNormals.link() )
+        return reportError(QString::fromUtf8(m_glProgramNormals.getLastError().c_str()));
+
+    // get and bind uniform block locations
+    uMatrices = glGetUniformBlockIndex(m_glProgramNormals.getProgramIdx(), "Matrices");
+
+    if ( uMatrices == GL_INVALID_INDEX )
+        std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
+
+    glUniformBlockBinding(m_glProgramNormals.getProgramIdx(), uMatrices, UB_MATRICES);
+    
+    m_uniformProjection.init(m_glProgramNormals, "u_projectionMatrix", MAT4F);
+#endif
+    
 #ifdef PHYSICS_DEBUG
     std::cout << "Loading Physics Debug OpenGL Program" << std::endl;
     
@@ -453,6 +491,15 @@ void MainApp::paintGL()
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+#ifdef NORMALS_DEBUG
+    if ( m_uniformProjection.isInitialized() )
+    {
+        m_uniformProjection.loadData(m_projectionMatrix);
+        m_uniformProjection.set();
+    }
+    for ( int pass = 0; pass < 2; ++pass )
+    {
+#endif
     for ( int screenIdx = 0; screenIdx < 2; ++screenIdx )
     {
         // enable only half the screen
@@ -468,12 +515,23 @@ void MainApp::paintGL()
         this->updatePhysicsObjects();
 
         // Render non-textured targets
+#ifdef NORMALS_DEBUG
+        if ( pass == 0 )
+        {
+#endif
 #ifdef GRAPHICS_DEBUG
         m_glProgramWireframe.use();
         m_winSizeWireframe.loadData(glm::vec2(this->width()/4.0f, this->height()/2.0f));
         m_winSizeWireframe.set();
 #else
         m_glProgramMaterial.use();
+#endif
+#ifdef NORMALS_DEBUG
+        }
+        else
+        {
+            m_glProgramNormals.use();
+        }
 #endif
         for ( RenderList::iterator i = m_renderTargets.begin(); i != m_renderTargets.end(); ++i )
         {
@@ -491,12 +549,23 @@ void MainApp::paintGL()
             (*i)->draw(DRAW_MATERIAL);
         }
 
+#ifdef NORMALS_DEBUG
+        if ( pass == 0 )
+        {
+#endif
 #ifdef GRAPHICS_DEBUG
         m_glProgramTexDWireframe.use();
         m_winSizeTexDWireframe.loadData(glm::vec2(this->width()/4.0f, this->height()/2.0f));
         m_winSizeTexDWireframe.set();
 #else
         m_glProgramTexD.use();
+#endif
+#ifdef NORMALS_DEBUG
+        }
+        else
+        {
+            m_glProgramNormals.use();
+        }
 #endif
         for ( RenderList::iterator i = m_renderTargets.begin(); i != m_renderTargets.end(); ++i )
         {
@@ -514,6 +583,9 @@ void MainApp::paintGL()
             (*i)->draw(DRAW_TEXTURE_D);
         }
     }
+#ifdef NORMALS_DEBUG
+    }
+#endif
 
     GLProgram::resetUsed();
 }
