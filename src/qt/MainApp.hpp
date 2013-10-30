@@ -2,7 +2,7 @@
 #define MAINAPP_HPP
 
 // need to be included first
-#include "../glwrappers/GLProgram.hpp"
+#include "../glwrappers/GLCompleteProgram.hpp"
 #include "../glwrappers/GLBuffer.hpp"
 #include "../glwrappers/GLUniform.hpp"
 #include "../objects/Camera.hpp"
@@ -54,8 +54,8 @@ protected:
     // set in initializeGL if failure occurs
     bool                   m_good;
 
-    GLProgram              m_glProgramMaterial;
-    GLProgram              m_glProgramTexD;
+    GLCompleteProgram      m_glProgramMaterial;
+    GLCompleteProgram      m_glProgramTexD;
     GLBuffer               m_glUniformMatrixBuffer;
     GLBuffer               m_glUniformLightsBuffer;
     GLBuffer               m_glUniformMaterialBuffer;
@@ -80,20 +80,20 @@ protected:
     int                    m_cameraSelect;
 
 #ifdef GRAPHICS_DEBUG
-    GLProgram m_glProgramTexDWireframe;
-    GLProgram m_glProgramWireframe;
+    GLCompleteProgram      m_glProgramTexDWireframe;
+    GLCompleteProgram      m_glProgramWireframe;
     
-    GLUniform m_winSizeWireframe;
-    GLUniform m_winSizeTexDWireframe;
+    GLUniform              m_winSizeWireframe;
+    GLUniform              m_winSizeTexDWireframe;
 #endif
 
 #ifdef NORMALS_DEBUG
-    GLProgram m_glProgramNormals;
-    GLUniform m_uniformProjection;
+    GLCompleteProgram      m_glProgramNormals;
+    GLUniform              m_uniformProjection;
 #endif
 
 #ifdef PHYSICS_DEBUG
-    GLProgram m_glProgramDebug;
+    GLCompleteProgram      m_glProgramDebug;
     std::shared_ptr<PhysicsDebug> m_physicsDebug; 
 #endif
 };

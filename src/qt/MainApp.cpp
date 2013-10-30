@@ -110,38 +110,10 @@ void MainApp::initializeGL()
     glShadeModel(GL_SMOOTH);  // Enables Smooth Color Shading
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
-    // initilize shaders
-    GLShader vshaderMaterial;
-    GLShader fshaderMaterial;
-    GLShader vshaderTexD;
-    GLShader fshaderTexD;
-    if ( !vshaderMaterial.compileFromFile("./shaders/vshader.glsl", GL_VERTEX_SHADER) )
-        return reportError(QString::fromUtf8(vshaderMaterial.getLastError().c_str()));
-    if ( !fshaderMaterial.compileFromFile("./shaders/fshader.glsl", GL_FRAGMENT_SHADER) )
-        return reportError(QString::fromUtf8(fshaderMaterial.getLastError().c_str()));
-    if ( !vshaderTexD.compileFromFile("./shaders/vshaderTexD.glsl", GL_VERTEX_SHADER) )
-        return reportError(QString::fromUtf8(vshaderTexD.getLastError().c_str()));
-    if ( !fshaderTexD.compileFromFile("./shaders/fshaderTexD.glsl", GL_FRAGMENT_SHADER) )
-        return reportError(QString::fromUtf8(fshaderTexD.getLastError().c_str()));
-    
-    // initialize material program
-    m_glProgramMaterial.init(); 
-    m_glProgramTexD.init();
-   
-    // attach shaders
-    if ( !m_glProgramMaterial.attachShader(vshaderMaterial) )
+    // load shader programs
+    if ( !m_glProgramMaterial.loadAndLink("shaders/vshader.glsl", "shaders/fshader.glsl") )
         return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
-    if ( !m_glProgramMaterial.attachShader(fshaderMaterial) )
-        return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
-    if ( !m_glProgramTexD.attachShader(vshaderTexD) )
-        return reportError(QString::fromUtf8(m_glProgramTexD.getLastError().c_str()));
-    if ( !m_glProgramTexD.attachShader(fshaderTexD) )
-        return reportError(QString::fromUtf8(m_glProgramTexD.getLastError().c_str()));
-
-    // link program
-    if ( !m_glProgramMaterial.link() )
-        return reportError(QString::fromUtf8(m_glProgramMaterial.getLastError().c_str()));
-    if ( !m_glProgramTexD.link() )
+    if ( !m_glProgramTexD.loadAndLink("shaders/vshaderTexD.glsl", "shaders/fshaderTexD.glsl") )
         return reportError(QString::fromUtf8(m_glProgramTexD.getLastError().c_str()));
 
     GLUniform diffuseMap;
@@ -302,48 +274,10 @@ void MainApp::initializeGL()
 #ifdef GRAPHICS_DEBUG
     std::cout << "Loading Wireframe Debug Program" << std::endl;
 
-    GLShader vshaderWireframe;
-    GLShader gshaderWireframe;
-    GLShader fshaderWireframe;
-    GLShader vshaderTexDWireframe;
-    GLShader gshaderTexDWireframe;
-    GLShader fshaderTexDWireframe;
-    
-    m_glProgramWireframe.init();
-    m_glProgramTexDWireframe.init();
-
-    // compile shaders
-    if ( !vshaderWireframe.compileFromFile("./shaders/debug/vshaderWireframe.glsl", GL_VERTEX_SHADER) )
-        return reportError(QString::fromUtf8(vshaderWireframe.getLastError().c_str()));
-    if ( !gshaderWireframe.compileFromFile("./shaders/debug/gshaderWireframe.glsl", GL_GEOMETRY_SHADER) )
-        return reportError(QString::fromUtf8(gshaderWireframe.getLastError().c_str()));
-    if ( !fshaderWireframe.compileFromFile("./shaders/debug/fshaderWireframe.glsl", GL_FRAGMENT_SHADER) )
-        return reportError(QString::fromUtf8(fshaderWireframe.getLastError().c_str()));
-    if ( !vshaderTexDWireframe.compileFromFile("./shaders/debug/vshaderTexDWireframe.glsl", GL_VERTEX_SHADER) )
-        return reportError(QString::fromUtf8(vshaderTexDWireframe.getLastError().c_str()));
-    if ( !gshaderTexDWireframe.compileFromFile("./shaders/debug/gshaderTexDWireframe.glsl", GL_GEOMETRY_SHADER) )
-        return reportError(QString::fromUtf8(gshaderTexDWireframe.getLastError().c_str()));
-    if ( !fshaderTexDWireframe.compileFromFile("./shaders/debug/fshaderTexDWireframe.glsl", GL_FRAGMENT_SHADER) )
-        return reportError(QString::fromUtf8(fshaderTexDWireframe.getLastError().c_str()));
-
-    // attach shaders
-    if ( !m_glProgramWireframe.attachShader(vshaderWireframe) )
+    // load programs
+    if ( !m_glProgramWireframe.loadAndLink("./shaders/debug/vshaderWireframe.glsl", "./shaders/debug/fshaderWireframe.glsl", "./shaders/debug/gshaderWireframe.glsl") )
         return reportError(QString::fromUtf8(m_glProgramWireframe.getLastError().c_str()));
-    if ( !m_glProgramWireframe.attachShader(gshaderWireframe) )
-        return reportError(QString::fromUtf8(m_glProgramWireframe.getLastError().c_str()));
-    if ( !m_glProgramWireframe.attachShader(fshaderWireframe) )
-        return reportError(QString::fromUtf8(m_glProgramWireframe.getLastError().c_str()));
-    if ( !m_glProgramTexDWireframe.attachShader(vshaderTexDWireframe) )
-        return reportError(QString::fromUtf8(m_glProgramTexDWireframe.getLastError().c_str()));
-    if ( !m_glProgramTexDWireframe.attachShader(gshaderTexDWireframe) )
-        return reportError(QString::fromUtf8(m_glProgramTexDWireframe.getLastError().c_str()));
-    if ( !m_glProgramTexDWireframe.attachShader(fshaderTexDWireframe) )
-        return reportError(QString::fromUtf8(m_glProgramTexDWireframe.getLastError().c_str()));
-    
-    // link programs
-    if ( !m_glProgramWireframe.link() )
-        return reportError(QString::fromUtf8(m_glProgramWireframe.getLastError().c_str()));
-    if ( !m_glProgramTexDWireframe.link() )
+    if ( !m_glProgramTexDWireframe.loadAndLink("./shaders/debug/vshaderTexDWireframe.glsl", "./shaders/debug/fshaderTexDWireframe.glsl", "./shaders/debug/gshaderTexDWireframe.glsl") )
         return reportError(QString::fromUtf8(m_glProgramTexDWireframe.getLastError().c_str()));
 
     // get and bind uniform block locations
@@ -391,66 +325,31 @@ void MainApp::initializeGL()
 #endif
 
 #ifdef NORMALS_DEBUG
-    GLShader vshaderNormals;
-    GLShader gshaderNormals;
-    GLShader fshaderNormals;
+    std::cout << "Loading Normals Debug OpenGL Program" << std::endl;
 
-    m_glProgramNormals.init();
-
-    // compile shaders
-    if ( !vshaderNormals.compileFromFile("./shaders/debug/vshaderNormals.glsl", GL_VERTEX_SHADER) )
-        return reportError(QString::fromUtf8(vshaderNormals.getLastError().c_str()));
-    if ( !gshaderNormals.compileFromFile("./shaders/debug/gshaderNormals.glsl", GL_GEOMETRY_SHADER) )
-        return reportError(QString::fromUtf8(gshaderNormals.getLastError().c_str()));
-    if ( !fshaderNormals.compileFromFile("./shaders/debug/fshaderNormals.glsl", GL_FRAGMENT_SHADER) )
-        return reportError(QString::fromUtf8(fshaderNormals.getLastError().c_str()));
-
-    // attach shaders
-    if ( !m_glProgramNormals.attachShader(vshaderNormals) )
-        return reportError(QString::fromUtf8(m_glProgramNormals.getLastError().c_str()));
-    if ( !m_glProgramNormals.attachShader(gshaderNormals) )
-        return reportError(QString::fromUtf8(m_glProgramNormals.getLastError().c_str()));
-    if ( !m_glProgramNormals.attachShader(fshaderNormals) )
-        return reportError(QString::fromUtf8(m_glProgramNormals.getLastError().c_str()));
-    
-    // link program
-    if ( !m_glProgramNormals.link() )
+    if ( !m_glProgramNormals.loadAndLink("./shaders/debug/vshaderNormals.glsl", "./shaders/debug/fshaderNormals.glsl", "./shaders/debug/gshaderNormals.glsl") )
         return reportError(QString::fromUtf8(m_glProgramNormals.getLastError().c_str()));
 
     // get and bind uniform block locations
     uMatrices = glGetUniformBlockIndex(m_glProgramNormals.getProgramIdx(), "Matrices");
-
     if ( uMatrices == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
-
     glUniformBlockBinding(m_glProgramNormals.getProgramIdx(), uMatrices, UB_MATRICES);
-    
+
+    // get the location projection matrix uniform
     m_uniformProjection.init(m_glProgramNormals, "u_projectionMatrix", MAT4F);
 #endif
     
 #ifdef PHYSICS_DEBUG
     std::cout << "Loading Physics Debug OpenGL Program" << std::endl;
-    
-    GLShader vshaderDebug;
-    GLShader fshaderDebug;
-    if ( !vshaderDebug.compileFromFile("./shaders/debug/vshaderPassthrough.glsl", GL_VERTEX_SHADER) )
-        return reportError(QString::fromUtf8(vshaderDebug.getLastError().c_str()));
-    if ( !fshaderDebug.compileFromFile("./shaders/debug/fshaderPassthrough.glsl", GL_FRAGMENT_SHADER) )
-        return reportError(QString::fromUtf8(fshaderDebug.getLastError().c_str()));
 
-    m_glProgramDebug.init(); 
+    if ( !m_glProgramDebug.loadAndLink("./shaders/debug/vshaderPassthrough.glsl", "./shaders/debug/fshaderPassthrough.glsl") )
+        return reportError(QString::fromUtf8(m_glProgramDebug.getLastError().c_str()));
 
-    if ( !m_glProgramDebug.attachShader(vshaderDebug) )
-        return reportError(QString::fromUtf8(m_glProgramDebug.getLastError().c_str()));
-    if ( !m_glProgramDebug.attachShader(fshaderDebug) )
-        return reportError(QString::fromUtf8(m_glProgramDebug.getLastError().c_str()));
-    if ( !m_glProgramDebug.link() )
-        return reportError(QString::fromUtf8(m_glProgramDebug.getLastError().c_str()));
-  
+    // get and bind uniform block locations
     uMatrices = glGetUniformBlockIndex(m_glProgramDebug.getProgramIdx(), "Matrices");
     if ( uMatrices == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
-    
     glUniformBlockBinding(m_glProgramDebug.getProgramIdx(), uMatrices, UB_MATRICES);
   
     // tell physics world to use debug drawer

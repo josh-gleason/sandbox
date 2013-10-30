@@ -22,9 +22,7 @@ void main()
         EmitVertex();
         
         vec4 normal = matrices.normalMatrix * vec4(g_normal[i],1.0);
-        //normal = normal / normal.w;
         vec4 position = matrices.mvMatrix * gl_in[i].gl_Position;
-        //position = position / position.w;
         
         gl_Position = u_projectionMatrix * vec4(position.xyz + 0.05 * normal.xyz, 1.0);
         EmitVertex();
