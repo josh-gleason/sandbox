@@ -79,6 +79,18 @@ public:
     // check if the uniform has been initialized
     bool isInitialized() const { return m_isInitialized; }
 
+    // used for setting a specific uniform, shouldn't be used except for uniforms which are constant
+    template <typename T>
+    static bool setUniform(const GLProgram& program, const std::basic_string<GLchar>& name, GLUniformType type, const T& data, size_t count = 1, GLboolean transpose = GL_FALSE)
+    {
+        GLUniform uniform;
+        if ( !uniform.init(program, name, type) )
+            return false;
+        uniform.loadData(data, count, transpose);
+        uniform.set();
+        return true;
+    }
+
 protected:
     GLUniformType             m_type;
     GLProgram                 m_program;

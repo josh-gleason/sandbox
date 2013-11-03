@@ -42,7 +42,14 @@ const unsigned int TICK_RATE = 1000 * (1.0/FPS);
 const float FOV_DEG = 45.0f;
 const float FIELD_NEAR = 0.01f;
 const float FIELD_FAR = 100.0f;
-    
+
+const LightInfo LIGHT_DARK({
+    glm::vec3(0.0f, 0.0f, 0.0f),
+    glm::vec3(0.0f, 0.0f, 0.0f),
+    glm::vec3(0.0f, 0.0f, 0.0f),
+    glm::vec3(0.0f, 0.0f, 0.0f)});
+
+// used for debugging to print the offsets of uniform buffer members 
 void printUniformOffsets(GLuint program, GLuint uniformBlock)
 {
     GLchar name[256];
@@ -116,44 +123,17 @@ void MainApp::initializeGL()
     if ( !m_glProgramTexD.loadAndLink("shaders/vshaderTexD.glsl", "shaders/fshaderTexD.glsl") )
         return reportError(QString::fromUtf8(m_glProgramTexD.getLastError().c_str()));
 
-    GLUniform diffuseMap;
-    diffuseMap.init(m_glProgramTexD, "u_diffuseMap", INT);
-    diffuseMap.loadData(0);
-    diffuseMap.set();
+    // set texture to sample from GL_TEXTURE0
+    GLUniform::setUniform(m_glProgramTexD, "u_diffuseMap", INT, 0);
 
     // get the uniform locations TODO make this in a class
     GLuint uMatrices = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Matrices");
     if ( uMatrices == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Matrices" << std::endl;
-#ifdef MESSAGES_DEBUG
-    else
-    {
-        std::cout << "Matrices Block offsets :: " << std::endl;
-        std::cout << " mvpMatrix : " << MAT_MVP_OFFSET << std::endl
-                  << " mvMatrix  : " << MAT_MV_OFFSET << std::endl
-                  << " normalMatrix : " << MAT_NORMAL_OFFSET << std::endl;
-        printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uMatrices);
-    }
-#endif
 
     GLuint uLights = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Lights");
     if ( uLights == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Lights" << std::endl;
-#ifdef MESSAGES_DEBUG
-    else
-    {
-        std::cout << "Lights Block offsets :: " << std::endl;
-        std::cout << " info.count      : " << LIGHT_COUNT_OFFSET << std::endl;
-        for ( int i = 0; i < LIGHT_ARRAY_SIZE; ++i )
-        {
-            std::cout << " info.position[" << i << "]: " << LIGHT_ARRAY_OFFSET + i*LIGHT_ARRAY_STEP + LIGHT_ARRAY_POSITION_OFFSET << std::endl
-                      << " info.diffuse[" << i << "] : " << LIGHT_ARRAY_OFFSET + i*LIGHT_ARRAY_STEP + LIGHT_ARRAY_DIFFUSE_OFFSET << std::endl
-                      << " info.specular[" << i << "]: " << LIGHT_ARRAY_OFFSET + i*LIGHT_ARRAY_STEP + LIGHT_ARRAY_SPECULAR_OFFSET << std::endl
-                      << " info.ambient[" << i << "] : " << LIGHT_ARRAY_OFFSET + i*LIGHT_ARRAY_STEP + LIGHT_ARRAY_AMBIENT_OFFSET << std::endl;
-        }
-        printUniformOffsets(m_glProgramMaterial.getProgramIdx(), uLights);
-    }
-#endif
 
     GLuint uMaterial = glGetUniformBlockIndex(m_glProgramMaterial.getProgramIdx(), "Material");
     if ( uMaterial == GL_INVALID_INDEX )
@@ -174,19 +154,7 @@ void MainApp::initializeGL()
     uMaterial = glGetUniformBlockIndex(m_glProgramTexD.getProgramIdx(), "Material");
     if ( uMaterial == GL_INVALID_INDEX )
         std::cout << "Warning: Unable to find uniform block Material" << std::endl;
-#ifdef MESSAGES_DEBUG
-    else
-    {
-        std::cout << "Material Block offsets :: " << std::endl;
-        std::cout << " diffuse  : " << MATERIAL_DIFFUSE_OFFSET << std::endl
-                  << " specular : " << MATERIAL_SPECULAR_OFFSET << std::endl
-                  << " ambient  : " << MATERIAL_AMBIENT_OFFSET << std::endl
-                  << " shininess: " << MATERIAL_SHININESS_OFFSET << std::endl
-                  << " texBlend : " << MATERIAL_TEXBLEND_OFFSET << std::endl;
-        printUniformOffsets(m_glProgramTexD.getProgramIdx(), uMaterial);
-    }
-#endif
-    
+ 
     glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uMatrices, UB_MATRICES);
     glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uLights, UB_LIGHT);
     glUniformBlockBinding(m_glProgramTexD.getProgramIdx(), uMaterial, UB_MATERIAL);
@@ -243,15 +211,9 @@ void MainApp::initializeGL()
     m_camera[1].moveVert(2.0f);
     m_camera[1].rotateVert(-25.0f);
     m_camera[1].rotateHoriz(57.0f);
-    
-    const LightInfo dark({
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f)});
 
     for ( int i = 0; i < LIGHT_ARRAY_SIZE; ++i )
-        m_lights.addLight(dark);
+        m_lights.addLight(LIGHT_DARK);
    
     // turn light #0 on player 1s position
     const glm::vec3 position0 = m_camera[0].getTranslation()[3].xyz();
