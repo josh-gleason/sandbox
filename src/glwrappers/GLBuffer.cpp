@@ -1,8 +1,8 @@
 #include "GLBuffer.hpp"
 
 GLBuffer::GLBuffer() :
-    m_buffers(nullptr),
-    m_targets(nullptr),
+    m_buffers(),
+    m_targets(),
     m_bufferCount(0U)
 {}
 

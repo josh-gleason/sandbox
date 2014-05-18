@@ -1,7 +1,7 @@
 #include "GLVertexArray.hpp"
 
 GLVertexArray::GLVertexArray() :
-    m_vao(nullptr),
+    m_vao(),
     m_count(0)
 {}
 

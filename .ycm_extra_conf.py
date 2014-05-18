@@ -99,7 +99,6 @@ extraflags = [
 '-D_REENTRANT',
 '-DKDE_DEPRECATED_WARNINGS',
 '-I/usr/share/qt4/mkspecs/default',
-'-I./include',
 '-DPHYSICS_DEBUG'
 ]
 

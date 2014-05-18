@@ -570,7 +570,7 @@ void MainApp::mousePressEvent(QMouseEvent * event)
     if ( (event->buttons() & Qt::LeftButton) != 0 )
     {
         // select camera where mouse was clicked
-        if (event->posF().x() > this->width()/2.0)
+        if (event->pos().x() > this->width()/2.0)
             m_cameraSelect = 1;
         else
             m_cameraSelect = 0;

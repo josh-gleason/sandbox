@@ -5,7 +5,7 @@
 
 GLTexture::GLTexture() :
     m_texCount(nullptr),
-    m_texParameters(nullptr)
+    m_texParameters()
 {};
 
 GLTexture::~GLTexture()

@@ -32,6 +32,11 @@ layout(std140) uniform Material
 // output color
 out vec4 out_color;
 
+// attenuation (constant, linear, quadratic)
+// attenuation = 1/(x + y*d + z*d*d)
+// Things are BRIGHTER the closer the coefficient is to 1
+const vec3 ATTENUATION_COEF = vec3(0.1, 0.0, 0.98);
+
 vec3 computeLighting(int idx)
 {
     vec3 V = normalize(-f_position);
@@ -43,7 +48,14 @@ vec3 computeLighting(int idx)
     vec3 ks = material.specular;
     vec3 ka = material.ambient;
     float a = material.shininess;
-   
+
+    float dist = length(L);
+    float attenuation = clamp(0.0, 1.0, 1.0/(
+            ATTENUATION_COEF.x +
+            ATTENUATION_COEF.y * dist +
+            ATTENUATION_COEF.z * dist * dist
+    ));
+
     // remove specular highlight if light is behind face
     //if( dot(L, N) < 0.0 )
     //    ks = vec3(0.0, 0.0, 0.0);
@@ -56,8 +68,8 @@ vec3 computeLighting(int idx)
     vec3 ia = lights.info[idx].ambient;
 
     vec3 Ip = ka*ia + kd*max(dot(L,N),0)*id + ks*pow(max(dot(H,N),0.0),max(a,2))*is;
-
-    return Ip;
+    
+    return Ip*attenuation;
 }
 
 void main()
